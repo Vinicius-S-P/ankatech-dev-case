@@ -1,83 +1,84 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { ChevronRight, type LucideIcon } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from "@/components/ui/sidebar"
 
-export function MainNav({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLElement>) {
-  const pathname = usePathname()
+export function NavMain({
+  items,
+}: {
+  items: {
+    title: string
+    url: string
+    icon?: LucideIcon
+    isActive?: boolean
+    items?: {
+      title: string
+      url: string
+    }[]
+  }[]
+}) {
   return (
-    <nav
-      className={cn("flex items-center space-x-4 lg:space-x-6", className)}
-      {...props}
-    >
-      <Link
-        href="/dashboard"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/dashboard" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Dashboard
-      </Link>
-      <Link
-        href="/clients"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/clients" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Clients
-      </Link>
-      <Link
-        href="/goals"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/goals" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Goals
-      </Link>
-      <Link
-        href="/projections"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/projections" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Projections
-      </Link>
-      <Link
-        href="/simulations"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/simulations" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Simulations
-      </Link>
-      <Link
-        href="/events"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/events" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Events
-      </Link>
-      <Link
-        href="/insurance"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/insurance" ? "text-primary" : "text-muted-foreground"
-        )}
-      >
-        Insurance
-      </Link>
-    </nav>
+    <SidebarGroup>
+      <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
+      <SidebarMenu>
+        {items.map((item) => (
+          <Collapsible
+            key={item.title}
+            asChild
+            defaultOpen={item.isActive}
+            className="group/collapsible"
+          >
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton tooltip={item.title} asChild={!item.items}>
+                  {item.items ? (
+                    <div className="flex items-center gap-2 w-full">
+                      {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
+                      <span className="flex-1 truncate">{item.title}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </div>
+                  ) : (
+                    <a href={item.url} className="flex items-center gap-2 w-full">
+                      {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
+                      <span className="flex-1 truncate">{item.title}</span>
+                    </a>
+                  )}
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              {item.items && (
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {item.items?.map((subItem) => (
+                      <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubButton asChild>
+                          <a href={subItem.url}>
+                            <span>{subItem.title}</span>
+                          </a>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              )}
+            </SidebarMenuItem>
+          </Collapsible>
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
   )
 }

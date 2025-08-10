@@ -1,17 +1,26 @@
-import React from 'react';
+"use client"
+
+import { usePathname } from "next/navigation"
+import { MainLayout } from "./main-layout"
 
 interface ConditionalLayoutProps {
-  condition: boolean;
-  wrapper: (children: React.ReactNode) => React.ReactElement;
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
-const ConditionalLayout: React.FC<ConditionalLayoutProps> = ({
-  condition,
-  wrapper,
-  children,
-}) => {
-  return condition ? wrapper(children) : <>{children}</>;
-};
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password']
 
-export default ConditionalLayout;
+export function ConditionalLayout({ children }: ConditionalLayoutProps) {
+  const pathname = usePathname()
+  
+  // Se estiver em uma rota pública, não aplicar o MainLayout
+  if (PUBLIC_ROUTES.includes(pathname)) {
+    return <>{children}</>
+  }
+  
+  // Para rotas protegidas, aplicar o MainLayout
+  return (
+    <MainLayout>
+      {children}
+    </MainLayout>
+  )
+}
