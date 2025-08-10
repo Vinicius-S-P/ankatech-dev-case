@@ -332,7 +332,7 @@ export default async function clientRoutes(
       
       if (!existing) {
         return reply.status(404).send({
-          message: 'Client not not found'
+          message: 'Client not found'
         });
       }
       

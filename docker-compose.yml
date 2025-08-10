@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:15
+    container_name: financial-db
+    environment:
+      POSTGRES_USER: planner
+      POSTGRES_PASSWORD: plannerpw
+      POSTGRES_DB: plannerdb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - financial-network
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: financial-backend
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_URL=postgresql://planner:plannerpw@db:5432/plannerdb
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - CORS_ORIGIN=http://localhost:3000
+    ports:
+      - "4000:4000"
+    networks:
+      - financial-network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: financial-frontend
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+    ports:
+      - "3000:3000"
+    networks:
+      - financial-network
+    restart: unless-stopped
+
+networks:
+  financial-network:
+    driver: bridge
+
+volumes:
+  pg_data:
