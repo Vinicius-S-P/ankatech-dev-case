@@ -1,10 +1,13 @@
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { Router } from 'express';
 import { investmentController } from '../controllers/investmentController';
 
-export default async function investmentRoutes(
-  fastify: FastifyInstance,
-  options: FastifyPluginOptions
-) {
-  fastify.post('/', investmentController.create);
-  fastify.get('/', investmentController.findAll);
-}
+const router = Router();
+
+router.post('/', investmentController.create);
+router.get('/', investmentController.findAll);
+router.get('/by-asset-type', investmentController.getByAssetType);
+router.get('/:id', investmentController.findById);
+router.put('/:id', investmentController.update);
+router.delete('/:id', investmentController.delete);
+
+export default router;
