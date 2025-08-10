@@ -1,36 +1,111 @@
-export function calculateAlignmentScore(currentAllocation: Record<string, number>, targetAllocation: Record<string, number>): number {
-  let score = 0;
-  let totalWeight = 0;
+/**
+ * Utilities for alignment categorization according to specification
+ */
 
-  for (const assetClass in targetAllocation) {
-    const current = currentAllocation[assetClass] || 0;
-    const target = targetAllocation[assetClass];
+export type AlignmentCategory = 'excellent' | 'good' | 'warning' | 'poor'
 
-    // Calculate the difference for each asset class
-    const difference = Math.abs(current - target);
-
-    // A simple scoring mechanism: the smaller the difference, the higher the score for this asset class
-    // You might want to normalize this based on the target value or overall portfolio size
-    score += (1 - Math.min(difference / target, 1)) * target; // Weighted by target allocation
-    totalWeight += target;
-  }
-
-  // Normalize the score to be between 0 and 100
-  return totalWeight > 0 ? (score / totalWeight) * 100 : 0;
+export interface AlignmentConfig {
+  category: AlignmentCategory
+  label: string
+  color: string
+  bgColor: string
+  textColor: string
 }
 
-export function getRebalanceSuggestions(currentAllocation: Record<string, number>, targetAllocation: Record<string, number>, totalPortfolioValue: number): Record<string, number> {
-  const suggestions: Record<string, number> = {};
+/**
+ * Get alignment category based on percentage
+ * Exact from specification:
+ * - "> 90%" - verde (excellent)
+ * - "90% a 70%" - amarelo-claro (good)  
+ * - "70% a 50%" - amarelo-escuro (warning)
+ * - "< 50%" - vermelho (poor)
+ */
+export function getAlignmentCategory(percentage: number): AlignmentCategory {
+  if (percentage > 90) return 'excellent'
+  if (percentage >= 70) return 'good'
+  if (percentage >= 50) return 'warning'
+  return 'poor'
+}
 
-  for (const assetClass in targetAllocation) {
-    const currentAmount = (currentAllocation[assetClass] || 0) * totalPortfolioValue;
-    const targetAmount = targetAllocation[assetClass] * totalPortfolioValue;
-
-    const difference = targetAmount - currentAmount;
-
-    // Suggest buying if current is less than target, selling if current is more than target
-    suggestions[assetClass] = difference;
+/**
+ * Get alignment configuration with colors
+ */
+export function getAlignmentConfig(percentage: number): AlignmentConfig {
+  const category = getAlignmentCategory(percentage)
+  
+  const configs: Record<AlignmentCategory, AlignmentConfig> = {
+    excellent: {
+      category: 'excellent',
+      label: '> 90%',
+      color: 'var(--alignment-excellent)',
+      bgColor: 'bg-green-500/10',
+      textColor: 'text-green-600 dark:text-green-400'
+    },
+    good: {
+      category: 'good',
+      label: '90% a 70%',
+      color: 'var(--alignment-good)',
+      bgColor: 'bg-yellow-400/10',
+      textColor: 'text-yellow-600 dark:text-yellow-400'
+    },
+    warning: {
+      category: 'warning',
+      label: '70% a 50%',
+      color: 'var(--alignment-warning)',
+      bgColor: 'bg-orange-500/10',
+      textColor: 'text-orange-600 dark:text-orange-400'
+    },
+    poor: {
+      category: 'poor',
+      label: '< 50%',
+      color: 'var(--alignment-poor)',
+      bgColor: 'bg-red-500/10',
+      textColor: 'text-red-600 dark:text-red-400'
+    }
   }
+  
+  return configs[category]
+}
 
-  return suggestions;
+/**
+ * Get badge variant for alignment
+ */
+export function getAlignmentBadgeVariant(percentage: number): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const category = getAlignmentCategory(percentage)
+  
+  switch (category) {
+    case 'excellent':
+      return 'default'
+    case 'good':
+      return 'secondary'
+    case 'warning':
+      return 'outline'
+    case 'poor':
+      return 'destructive'
+    default:
+      return 'secondary'
+  }
+}
+
+/**
+ * Format alignment percentage for display
+ */
+export function formatAlignmentPercentage(percentage: number): string {
+  return `${percentage.toFixed(1)}%`
+}
+
+/**
+ * Get alignment status text
+ */
+export function getAlignmentStatusText(percentage: number): string {
+  const category = getAlignmentCategory(percentage)
+  
+  const statusTexts: Record<AlignmentCategory, string> = {
+    excellent: 'Excelente Alinhamento',
+    good: 'Bom Alinhamento', 
+    warning: 'Atenção Necessária',
+    poor: 'Revisão Urgente'
+  }
+  
+  return statusTexts[category]
 }

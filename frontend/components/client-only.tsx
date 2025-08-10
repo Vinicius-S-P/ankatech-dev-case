@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
+import { useClientOnly } from "@/hooks/use-client-only"
+import { ReactNode } from "react"
 
 interface ClientOnlyProps {
-  children: React.ReactNode;
+  children: ReactNode
+  fallback?: ReactNode
 }
 
-const ClientOnly: React.FC<ClientOnlyProps> = ({ children }) => {
-  const [hasMounted, setHasMounted] = useState(false);
+/**
+ * Componente que só renderiza no cliente
+ * Evita problemas de hidratação SSR
+ */
+export function ClientOnly({ children, fallback = null }: ClientOnlyProps) {
+  const isClient = useClientOnly()
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  if (!hasMounted) {
-    return null;
+  if (!isClient) {
+    return <>{fallback}</>
   }
 
-  return <>{children}</>;
-};
-
-export default ClientOnly;
+  return <>{children}</>
+}

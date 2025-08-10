@@ -1,94 +1,228 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useCSVImport } from "@/hooks/useCSVImport";
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
+import { useCSVImport } from "@/hooks/useCSVImport"
+import { Card, CardContent } from "@/components/ui/card"
+import { CheckCircle, XCircle, Upload, X } from "lucide-react"
+import { toast } from "sonner"
 
 interface CSVImportDialogProps {
-  onImport: (data: any[]) => void;
-  dialogTrigger: React.ReactNode;
-  title?: string;
-  description?: string;
+  clientId: string
+  clientName: string
+  onImportComplete?: () => void
 }
 
-export function CSVImportDialog({
-  onImport,
-  dialogTrigger,
-  title = "Import CSV Data",
-  description = "Upload a CSV file to import data.",
+export function CSVImportDialog({ 
+  clientId, 
+  clientName, 
+  onImportComplete 
 }: CSVImportDialogProps) {
-  const [open, setOpen] = useState(false);
-  const { isLoading, csvData, error, handleFileChange } = useCSVImport({
-    onImportSuccess: (data) => {
-      if (data.length > 0) {
-        toast.success(`${data.length} records successfully loaded from CSV.`);
-      } else {
-        toast.info("CSV file is empty or contains no valid data.");
-      }
-    },
-    onImportError: (errorMessage) => {
-      toast.error(`Failed to import CSV: ${errorMessage}`);
-    },
-  });
+  const [isOpen, setIsOpen] = useState(false)
+  const { 
+    progress, 
+    error, 
+    complete, 
+    isImporting, 
+    startImport, 
+    cancelImport, 
+    resetState 
+  } = useCSVImport()
 
-  const handleConfirmImport = () => {
-    if (csvData.length > 0) {
-      onImport(csvData);
-      setOpen(false);
-    } else {
-      toast.error("No data to import. Please upload a valid CSV file.");
+  const handleStartImport = () => {
+    resetState()
+    startImport(clientId)
+  }
+
+  const handleCloseDialog = () => {
+    if (isImporting) {
+      cancelImport()
     }
-  };
+    setIsOpen(false)
+    resetState()
+    
+    if (complete && onImportComplete) {
+      onImportComplete()
+    }
+  }
+
+  const handleCancel = () => {
+    cancelImport()
+    toast.info("Importação cancelada")
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{dialogTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Upload className="h-4 w-4 mr-2" />
+          Importar Dados CSV
+        </Button>
+      </DialogTrigger>
+      
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>Importação de Dados CSV</DialogTitle>
+          <DialogDescription>
+            Importar dados financeiros para o cliente: <strong>{clientName}</strong>
+          </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="csvFile" className="text-right">
-              CSV File
-            </Label>
-            <Input
-              id="csvFile"
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="col-span-3"
-            />
-          </div>
-          {isLoading && <p className="text-center">Loading...</p>}
-          {error && <p className="text-center text-destructive">Error: {error}</p>}
-          {csvData.length > 0 && (
-            <p className="text-center text-sm text-muted-foreground">
-              {csvData.length} records ready to import.
-            </p>
+
+        <div className="space-y-4">
+          {!isImporting && !progress && !error && !complete && (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>Esta funcionalidade irá importar:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Dados da carteira de investimentos</li>
+                  <li>Metas financeiras</li>
+                  <li>Eventos financeiros planejados</li>
+                  <li>Métricas de alinhamento</li>
+                </ul>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleStartImport}>
+                  Iniciar Importação
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isImporting && (
+            <div className="space-y-4">
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-blue-800">
+                        Importação em Andamento
+                      </h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={handleCancel}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {progress && (
+                      <>
+                        <Progress 
+                          value={progress.percentage} 
+                          className="w-full"
+                        />
+                        <div className="space-y-2">
+                          <p className="text-sm text-blue-700">
+                            {progress.message}
+                          </p>
+                          <div className="flex justify-between text-xs text-blue-600">
+                            <span>
+                              {progress.current}/{progress.total} etapas
+                            </span>
+                            <span>
+                              {progress.percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {error && (
+            <div className="space-y-4">
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-red-800">
+                    <XCircle className="h-5 w-5" />
+                    <div>
+                      <h4 className="font-medium">Erro na Importação</h4>
+                      <p className="text-sm mt-1">{error.error}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleCloseDialog}
+                >
+                  Fechar
+                </Button>
+                <Button onClick={handleStartImport}>
+                  Tentar Novamente
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {complete && (
+            <div className="space-y-4">
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-green-800">
+                      <CheckCircle className="h-5 w-5" />
+                      <h4 className="font-medium">Importação Concluída</h4>
+                    </div>
+                    
+                    <p className="text-sm text-green-700">
+                      {complete.message}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Total de registros:</span>
+                        <span className="ml-2 font-medium">{complete.totalRecords}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Carteiras criadas:</span>
+                        <span className="ml-2 font-medium">{complete.walletsCreated}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Metas criadas:</span>
+                        <span className="ml-2 font-medium">{complete.goalsCreated}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Eventos criados:</span>
+                        <span className="ml-2 font-medium">{complete.eventsCreated}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button onClick={handleCloseDialog}>
+                  Concluir
+                </Button>
+              </div>
+            </div>
           )}
         </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            onClick={handleConfirmImport}
-            disabled={isLoading || csvData.length === 0}
-          >
-            Import Data
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

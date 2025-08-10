@@ -1,79 +1,113 @@
-import { z } from "zod";
+import { z } from "zod"
 
+// Enums
+export const UserRole = z.enum(["ADVISOR", "VIEWER"])
+export const ClientAlignmentCategory = z.enum(["HIGH", "MEDIUM_HIGH", "MEDIUM_LOW", "LOW"])
+export const GoalType = z.enum(["RETIREMENT", "SHORT_TERM", "MEDIUM_TERM", "LONG_TERM", "EDUCATION", "TRAVEL", "INVESTMENT", "OTHER"])
+export const EventType = z.enum(["INCOME", "EXPENSE", "INVESTMENT", "WITHDRAWAL", "TRANSFER", "OTHER"])
+export const InsuranceType = z.enum(["LIFE", "HEALTH", "DISABILITY", "PROPERTY", "OTHER"])
+
+// User Schema
+export const userSchema = z.object({
+  id: z.string().optional(),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  role: UserRole,
+  active: z.boolean().default(true),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+})
+
+export const loginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Senha é obrigatória"),
+})
+
+// Client Schema
 export const clientSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
+  age: z.number().min(18, "Idade mínima é 18 anos").max(120, "Idade máxima é 120 anos"),
+  active: z.boolean().default(true),
+  familyProfile: z.string().optional(),
+  advisorId: z.string().optional().default(""), // Será preenchido automaticamente
+  totalWealth: z.number().min(0, "Patrimônio não pode ser negativo").optional(),
+  alignmentPercentage: z.number().min(0).max(100).optional(),
+  alignmentCategory: ClientAlignmentCategory.optional(),
+})
 
+// Goal Schema
 export const goalSchema = z.object({
   id: z.string().optional(),
-  clientId: z.string(),
-  name: z.string().min(1, "Goal name is required"),
-  targetAmount: z.number().min(0, "Target amount must be positive"),
-  currentAmount: z.number().min(0, "Current amount must be positive").default(0),
-  targetDate: z.string(),
+  clientId: z.string().min(1, "Cliente é obrigatório"),
+  type: GoalType,
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   description: z.string().optional(),
-  status: z.enum(["Pending", "Achieved", "InProgress"]).default("Pending"),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
+  targetValue: z.number().min(1, "Valor alvo deve ser maior que zero"),
+  targetDate: z.string().min(1, "Data alvo é obrigatória"),
+  currentValue: z.number().min(0, "Valor atual não pode ser negativo").optional().default(0),
+  monthlyIncome: z.number().min(0, "Renda mensal não pode ser negativa").optional(),
+})
 
-export const investmentSchema = z.object({
-  id: z.string().optional(),
-  clientId: z.string(),
-  name: z.string().min(1, "Investment name is required"),
-  type: z.string().min(1, "Investment type is required"),
-  currentValue: z.number().min(0, "Current value must be positive"),
-  purchaseDate: z.string().optional(),
-  notes: z.string().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
-
+// Wallet Schema
 export const walletSchema = z.object({
   id: z.string().optional(),
-  clientId: z.string(),
-  name: z.string().min(1, "Wallet name is required"),
-  balance: z.number().min(0, "Balance must be positive"),
-  currency: z.string().default("USD"),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
+  clientId: z.string().min(1, "Cliente é obrigatório"),
+  assetClass: z.string().min(1, "Classe de ativo é obrigatória"),
+  percentage: z.number().min(0, "Percentual não pode ser negativo").max(100, "Percentual não pode ser maior que 100"),
+  currentValue: z.number().min(0, "Valor atual não pode ser negativo"),
+})
 
+// Event Schema
 export const eventSchema = z.object({
   id: z.string().optional(),
-  clientId: z.string(),
-  name: z.string().min(1, "Event name is required"),
-  date: z.string(),
+  clientId: z.string().min(1, "Cliente é obrigatório"),
+  type: EventType,
+  value: z.number().min(0.01, "Valor deve ser maior que zero"),
+  frequency: z.enum(["UNIQUE", "MONTHLY", "ANNUAL"]),
+  date: z.string().min(1, "Data é obrigatória"),
   description: z.string().optional(),
-  type: z.string().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
+})
 
+// Insurance Schema
 export const insuranceSchema = z.object({
   id: z.string().optional(),
-  clientId: z.string(),
-  policyName: z.string().min(1, "Policy name is required"),
-  provider: z.string().min(1, "Provider is required"),
-  coverageAmount: z.number().min(0, "Coverage amount must be positive"),
-  premium: z.number().min(0, "Premium must be positive"),
-  policyType: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  notes: z.string().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
+  clientId: z.string().min(1, "Cliente é obrigatório"),
+  type: InsuranceType,
+  provider: z.string().min(1, "Seguradora é obrigatória"),
+  value: z.number().min(0.01, "Valor deve ser maior que zero"),
+  beneficiary: z.string().min(1, "Beneficiário é obrigatório"),
+  description: z.string().optional(),
+})
 
-export type Client = z.infer<typeof clientSchema>;
-export type Goal = z.infer<typeof goalSchema>;
-export type Investment = z.infer<typeof investmentSchema>;
-export type Wallet = z.infer<typeof walletSchema>;
-export type Event = z.infer<typeof eventSchema>;
-export type Insurance = z.infer<typeof insuranceSchema>;
+// Simulation Schema
+export const simulationSchema = z.object({
+  id: z.string().optional(),
+  clientId: z.string().min(1, "Cliente é obrigatório"),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  description: z.string().optional(),
+  parameters: z.record(z.string(), z.any()),
+  results: z.record(z.string(), z.any()).optional(),
+  version: z.number().default(1),
+  active: z.boolean().default(true),
+})
+
+// Projection Schema
+export const projectionSchema = z.object({
+  clientId: z.string().min(1, "Cliente é obrigatório"),
+  initialWealth: z.number().min(0, "Patrimônio inicial não pode ser negativo"),
+  targetYear: z.number().min(2024, "Ano deve ser no futuro"),
+  annualReturn: z.number().min(0, "Taxa de retorno não pode ser negativa").max(100, "Taxa de retorno não pode ser maior que 100%"),
+  monthlyContribution: z.number().min(0, "Contribuição mensal não pode ser negativa"),
+})
+
+// Form Types
+export type UserFormData = z.infer<typeof userSchema>
+export type LoginFormData = z.infer<typeof loginSchema>
+export type ClientFormData = z.infer<typeof clientSchema>
+export type GoalFormData = z.infer<typeof goalSchema>
+export type WalletFormData = z.infer<typeof walletSchema>
+export type EventFormData = z.infer<typeof eventSchema>
+export type InsuranceFormData = z.infer<typeof insuranceSchema>
+export type SimulationFormData = z.infer<typeof simulationSchema>
+export type ProjectionFormData = z.infer<typeof projectionSchema>

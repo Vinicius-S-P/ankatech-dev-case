@@ -1,33 +1,87 @@
-import useSWR from "swr";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
+"use client"
 
-interface FinancialDataHook<T> {
-  data: T | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  error: any;
-  mutate: (data?: T | Promise<T> | ((currentData: T | undefined) => T | undefined), shouldRevalidate?: boolean) => Promise<T | undefined>;
+import { useState, useEffect } from 'react'
+import { 
+  investmentApi, 
+  allocationApi, 
+  goalApi, 
+  kpiApi,
+  Investment,
+  Allocation,
+  Goal,
+  KPIData 
+} from '@/lib/api'
+
+interface FinancialData {
+  investments: {
+    financial: Investment[]
+    realEstate: Investment[]
+    total: {
+      value: number
+      count: number
+    }
+  }
+  allocation: Allocation | null
+  goal: Goal & { 
+    monthsToRetirement: number
+    monthlyContribution: number
+    requiredMonthlyReturn: number
+    projectedValue: number
+  } | null
+  kpis: KPIData[]
 }
 
-const fetcher = async (url: string) => {
-  try {
-    const response = await api.get(url);
-    return response;
-  } catch (error: any) {
-    toast.error(`Failed to fetch data: ${error.message}`);
-    throw error;
+export function useFinancialData() {
+  const [data, setData] = useState<FinancialData>({
+    investments: {
+      financial: [],
+      realEstate: [],
+      total: { value: 0, count: 0 }
+    },
+    allocation: null,
+    goal: null,
+    kpis: []
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const [investmentData, allocationData, goalData, kpiData] = await Promise.all([
+        investmentApi.getByAssetType(),
+        allocationApi.getCurrent(),
+        goalApi.getCurrent(),
+        kpiApi.findAll()
+      ])
+
+      setData({
+        investments: {
+          financial: (investmentData.data as any).financial?.assets || [],
+          realEstate: (investmentData.data as any).realEstate?.assets || [],
+          total: { value: (investmentData.data as any).total?.totalValue || 0, count: (investmentData.data as any).total?.count || 0 }
+        },
+        allocation: allocationData.data,
+        goal: goalData.data,
+        kpis: kpiData.data.kpis
+      })
+    } catch (err) {
+      console.error('Error fetching financial data:', err)
+      setError('Failed to load financial data')
+    } finally {
+      setLoading(false)
+    }
   }
-};
 
-export function useFinancialData<T>(endpoint: string): FinancialDataHook<T> {
-  const { data, error, isLoading, mutate } = useSWR<T>(endpoint, fetcher);
+  const refresh = () => {
+    fetchData()
+  }
 
-  return {
-    data,
-    isLoading,
-    isError: !!error,
-    error,
-    mutate,
-  };
+  return { data, loading, error, refresh }
 }

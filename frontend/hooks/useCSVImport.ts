@@ -1,59 +1,163 @@
-import { useState } from "react";
-import Papa from "papaparse";
-import { toast } from "sonner";
+import { useState, useCallback, useRef } from 'react'
 
-interface UseCSVImportOptions {
-  onImportSuccess?: (data: any[]) => void;
-  onImportError?: (error: string) => void;
+export interface ImportProgress {
+  current: number
+  total: number
+  percentage: number
+  message: string
+  timestamp: string
 }
 
-export function useCSVImport(options?: UseCSVImportOptions) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [csvData, setCsvData] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
+export interface ImportError {
+  error: string
+  timestamp: string
+}
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      if (file.type !== "text/csv") {
-        setError("Please upload a CSV file.");
-        toast.error("Please upload a CSV file.");
-        options?.onImportError?.("Please upload a CSV file.");
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
+export interface ImportComplete {
+  totalRecords: number
+  walletsCreated: number
+  goalsCreated: number
+  eventsCreated: number
+  message: string
+  timestamp: string
+}
 
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          if (results.errors.length) {
-            const errorMessage = results.errors.map(err => err.message).join("; ");
-            setError(errorMessage);
-            toast.error(`CSV parsing error: ${errorMessage}`);
-            options?.onImportError?.(errorMessage);
-          } else {
-            setCsvData(results.data);
-            toast.success("CSV file parsed successfully!");
-            options?.onImportSuccess?.(results.data);
-          }
-          setIsLoading(false);
-        },
-        error: (err: Error) => {
-          setError(err.message);
-          toast.error(`CSV parsing error: ${err.message}`);
-          options?.onImportError?.(err.message);
-          setIsLoading(false);
-        },
-      });
+export interface ImportState {
+  progress: ImportProgress | null
+  error: ImportError | null
+  complete: ImportComplete | null
+  isImporting: boolean
+}
+
+export function useCSVImport() {
+  const [state, setState] = useState<ImportState>({
+    progress: null,
+    error: null,
+    complete: null,
+    isImporting: false
+  })
+
+  const eventSourceRef = useRef<EventSource | null>(null)
+
+  const startImport = useCallback((clientId: string) => {
+    setState({
+      progress: null,
+      error: null,
+      complete: null,
+      isImporting: true
+    })
+
+    // Close existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
     }
-  };
+
+    const eventSource = new EventSource(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/import/csv-import/${clientId}`
+    )
+
+    eventSourceRef.current = eventSource
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        
+        switch (data.type) {
+          case 'progress':
+            setState(prev => ({
+              ...prev,
+              progress: {
+                current: data.current,
+                total: data.total,
+                percentage: data.percentage,
+                message: data.message,
+                timestamp: data.timestamp
+              }
+            }))
+            break
+
+          case 'error':
+            setState(prev => ({
+              ...prev,
+              error: {
+                error: data.error,
+                timestamp: data.timestamp
+              },
+              isImporting: false
+            }))
+            eventSource.close()
+            break
+
+          case 'complete':
+            setState(prev => ({
+              ...prev,
+              complete: {
+                totalRecords: data.totalRecords,
+                walletsCreated: data.walletsCreated,
+                goalsCreated: data.goalsCreated,
+                eventsCreated: data.eventsCreated,
+                message: data.message,
+                timestamp: data.timestamp
+              },
+              isImporting: false
+            }))
+            eventSource.close()
+            break
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error)
+        setState(prev => ({
+          ...prev,
+          error: {
+            error: 'Erro ao processar dados de importação',
+            timestamp: new Date().toISOString()
+          },
+          isImporting: false
+        }))
+        eventSource.close()
+      }
+    }
+
+    eventSource.onerror = (error) => {
+      console.error('SSE error:', error)
+      setState(prev => ({
+        ...prev,
+        error: {
+          error: 'Erro de conexão durante importação',
+          timestamp: new Date().toISOString()
+        },
+        isImporting: false
+      }))
+      eventSource.close()
+    }
+
+  }, [])
+
+  const cancelImport = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
+      eventSourceRef.current = null
+    }
+
+    setState(prev => ({
+      ...prev,
+      isImporting: false
+    }))
+  }, [])
+
+  const resetState = useCallback(() => {
+    setState({
+      progress: null,
+      error: null,
+      complete: null,
+      isImporting: false
+    })
+  }, [])
 
   return {
-    isLoading,
-    csvData,
-    error,
-    handleFileChange,
-  };
+    ...state,
+    startImport,
+    cancelImport,
+    resetState
+  }
 }
