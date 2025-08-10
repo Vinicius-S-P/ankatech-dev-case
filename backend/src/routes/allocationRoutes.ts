@@ -1,10 +1,12 @@
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { Router } from 'express';
 import { allocationController } from '../controllers/allocationController';
 
-export default async function allocationRoutes(
-  fastify: FastifyInstance,
-  options: FastifyPluginOptions
-) {
-  fastify.post('/', allocationController.create);
-  fastify.get('/', allocationController.findAll);
-}
+const router = Router();
+
+router.post('/', allocationController.create);
+router.get('/current', allocationController.getCurrent);
+router.get('/history', allocationController.getHistory);
+router.put('/:id', allocationController.update);
+router.delete('/:id', allocationController.delete);
+
+export default router;
