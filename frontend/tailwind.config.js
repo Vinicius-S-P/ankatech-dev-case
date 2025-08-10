@@ -1,0 +1,106 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'class',
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        'primary-blue': 'var(--primary-blue)',
+        'success-green': 'var(--success-green)',
+        'error-red': 'var(--error-red)',
+        'orange': 'var(--orange)',
+        'gray-medium': 'var(--gray-medium)',
+        'gray-light': 'var(--gray-light)',
+        'gray-dark': 'var(--gray-dark)',
+        'gray-darker': 'var(--gray-darker)',
+        'gray-nav': 'var(--gray-nav)',
+        'gray-border': 'var(--gray-border)',
+        'gray-border-light': 'var(--gray-border-light)',
+        'gray-text': 'var(--gray-text)',
+        'gray-text-light': 'var(--gray-text-light)',
+        'card-dark': 'var(--card-dark)',
+        'button-dark': 'var(--button-dark)',
+        'chart-blue': 'var(--chart-blue)',
+        'chart-green': 'var(--chart-green)',
+        'alignment-excellent': 'var(--alignment-excellent)',
+        'alignment-good': 'var(--alignment-good)',
+        'alignment-warning': 'var(--alignment-warning)',
+        'alignment-poor': 'var(--alignment-poor)',
+        'chart-yellow': 'var(--chart-yellow)',
+        'chart-orange': 'var(--chart-orange)',
+        'chart-red': 'var(--chart-red)',
+        'chart-cyan': 'var(--chart-cyan)',
+        'chart-gold': 'var(--chart-gold)',
+        'investment-green': 'var(--investment-green)',
+        'investment-blue': 'var(--investment-blue)',
+        'investment-violet': 'var(--investment-violet)',
+      },
+      borderRadius: {
+        lg: 'var(--radius-lg)',
+        md: 'var(--radius)',
+        sm: 'calc(var(--radius) - 2px)',
+        xl: 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
+        '3xl': '2rem',
+      },
+      fontFamily: {
+        'sans': ['Work Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        'work': ['Work Sans', 'sans-serif'],
+        'inter': ['Inter', 'sans-serif'],
+        'neuton': ['Neuton', 'serif'],
+      },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [],
+}

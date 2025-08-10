@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  PLANO_ORIGINAL
+  SITUACAO_ATUAL
+  CUSTO_VIDA
+}
+
+enum AssetType {
+  FINANCEIRA
+  IMOBILIZADA
+}
+
+enum InvestmentType {
+  FUNDO_DI
+  FUNDO_MULTIMERCADO
+  BTC
+  CASA_PRAIA
+  APARTAMENTO
+  CAIXA
+  RENDA_FIXA
+  PREVIDENCIA
+  FUNDO_INVESTIMENTO
+  ALTERNATIVOS
+}
+
+model Data {
+  id         String     @id @default(cuid())
+  label      String
+  value      Float
+  category   Category
+  date       DateTime   @default(now())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  
+  @@map("data")
+}
+
+model Investment {
+  id             String          @id @default(cuid())
+  name           String
+  type           InvestmentType
+  assetType      AssetType
+  currentValue   Float
+  initialValue   Float
+  percentChange  Float           @default(0)
+  allocation     Float           @default(0)
+  date           DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  
+  @@map("investments")
+}
+
+model Allocation {
+  id                String   @id @default(cuid())
+  totalAllocated    Float
+  emergencyExpected Float    @default(0)
+  emergencyActual   Float    @default(0)
+  date              DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("allocations")
+}
+
+model KPIData {
+  id         String   @id @default(cuid())
+  category   String
+  percentage Float
+  indexer    String?
+  custody    String?
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("kpi_data")
+}
+
+model Goal {
+  id                String   @id @default(cuid())
+  retirementAge     Int
+  monthlyIncome     Float
+  targetReturn      String
+  currentProgress   Float    @default(0)
+  targetAmount      Float
+  annualContribution Float   @default(0)
+  date              DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("goals")
+}
