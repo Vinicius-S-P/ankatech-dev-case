@@ -115,7 +115,9 @@ export default function GoalsPage() {
     return diffDays <= 90 && diffDays > 0
   }
 
-  const goals = goalsData?.data || []
+  const goals = (goalsData?.goals || []).filter((goal: Goal) => 
+    selectedClientId === "all" || goal.clientId === selectedClientId
+  )
   const totalGoals = goals.length
   const clients: Array<{ id: string; name: string }> = (
     (clientsData as { clients?: Array<{ id: string; name: string }> } | undefined)?.clients
@@ -170,7 +172,6 @@ export default function GoalsPage() {
         </Dialog>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -192,7 +193,13 @@ export default function GoalsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(goals.reduce((sum: number, goal: Goal) => sum + (goal.targetValue || 0), 0))}
+              {(() => {
+                let totalTargetValue = 0;
+                for (const goal of goals) {
+                  totalTargetValue += (goal.targetValue || 0);
+                }
+                return formatCurrency(totalTargetValue);
+              })()}
             </div>
             <p className="text-xs text-muted-foreground">
               Soma de todas as metas
@@ -208,7 +215,13 @@ export default function GoalsPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {goals.length > 0 
-                ? (goals.reduce((sum: number, goal: Goal) => sum + getProgressPercentage(goal.currentValue || 0, goal.targetValue), 0) / goals.length).toFixed(1)
+                ? (() => {
+                    let totalProgressPercentage = 0;
+                    for (const goal of goals) {
+                      totalProgressPercentage += getProgressPercentage(goal.currentValue || 0, goal.targetValue);
+                    }
+                    return (totalProgressPercentage / goals.length).toFixed(1);
+                  })()
                 : "0"
               }%
             </div>
@@ -234,7 +247,6 @@ export default function GoalsPage() {
         </Card>
       </div>
 
-      {/* Filters and Table */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Metas</CardTitle>

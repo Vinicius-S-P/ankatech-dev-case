@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react'
 
-/**
- * Hook para garantir que código só execute no cliente
- * Evita problemas de hidratação do SSR
- */
 export function useClientOnly() {
   const [isClient, setIsClient] = useState(false)
 
@@ -14,10 +10,6 @@ export function useClientOnly() {
   return isClient
 }
 
-/**
- * Hook para valores que dependem do localStorage
- * Retorna valor padrão durante SSR e valor real no cliente
- */
 export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => void] {
   const isClient = useClientOnly()
   
@@ -46,7 +38,6 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T)
     }
   }
 
-  // Sincronizar com localStorage quando o componente monta no cliente
   useEffect(() => {
     if (isClient) {
       try {

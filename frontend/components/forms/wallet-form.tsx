@@ -110,7 +110,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Cliente */}
             <FormField
               control={form.control}
               name="clientId"
@@ -136,7 +135,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
               )}
             />
 
-            {/* Classe de Ativo */}
             <FormField
               control={form.control}
               name="assetClass"
@@ -162,7 +160,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
               )}
             />
 
-            {/* Valor Atual */}
             <FormField
               control={form.control}
               name="currentValue"
@@ -183,7 +180,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
               )}
             />
 
-            {/* Percentual Atual */}
             <FormField
               control={form.control}
               name="percentage"
@@ -206,7 +202,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
               )}
             />
 
-            {/* Percentual Alvo */}
             <FormField
               control={form.control}
               name="targetPercentage"
@@ -229,7 +224,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
               )}
             />
 
-            {/* Descrição */}
             <FormField
               control={form.control}
               name="description"
@@ -249,7 +243,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
             />
           </div>
 
-          {/* Resumo */}
           {form.watch("currentValue") > 0 && (
             <Card>
               <CardHeader>
@@ -293,7 +286,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
             </Card>
           )}
 
-          {/* Alertas de Validação */}
           {form.watch("percentage") > 50 && (
             <Card className="border-yellow-200 bg-yellow-50">
               <CardContent className="pt-6">
@@ -314,7 +306,6 @@ export function WalletForm({ wallet, onSuccess, onCancel }: WalletFormProps) {
             </Card>
           )}
 
-          {/* Botões */}
           <div className="flex justify-end space-x-4">
             <Button
               type="button"

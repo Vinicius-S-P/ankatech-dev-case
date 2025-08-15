@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { EventForm } from "@/components/forms/event-form"
-import { useEvents, useDeleteEvent } from "@/hooks/use-api"
+import { useEvents, useDeleteEvent, useClients } from "@/hooks/use-api"
 import { 
   Calendar,
   Plus,
@@ -28,10 +29,15 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+interface Client {
+  id: string
+  name: string
+}
+
 interface Event {
   id: string
   clientId: string
-  clientName?: string
+  client: Client
   type: 'DEPOSIT' | 'WITHDRAWAL' | 'INCOME' | 'EXPENSE'
   name: string
   description?: string
@@ -67,11 +73,12 @@ const frequencyLabels = {
 
 export default function EventsPage() {
   const [search, setSearch] = useState("")
-  const [selectedClient, setSelectedClient] = useState<string>("")
+  const [selectedClient, setSelectedClient] = useState<string>("all")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   
-  const { data: eventsData, isLoading, error } = useEvents(selectedClient)
+  const { data: clientsData } = useClients()
+  const { data: eventsData, isLoading, error } = useEvents(selectedClient == "all" ? undefined : selectedClient)
   const deleteEvent = useDeleteEvent()
 
   const handleDeleteEvent = async (eventId: string, eventName: string) => {
@@ -110,16 +117,19 @@ export default function EventsPage() {
     return new Date(dateString).toLocaleDateString('pt-BR')
   }
 
-  const events = eventsData?.data || []
+  const events = eventsData?.events || []
 
-  // Filtrar eventos por busca
-  const filteredEvents = events.filter((event: Event) => 
-    event.name.toLowerCase().includes(search.toLowerCase()) ||
-    event.clientName?.toLowerCase().includes(search.toLowerCase()) ||
-    eventTypeLabels[event.type].toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredEvents = events.filter((event: Event) => {
+    const searchLower = search.toLowerCase()
+    const clientMatch = selectedClient === 'all' || event.clientId === selectedClient
+    const searchMatch = 
+      event.name.toLowerCase().includes(searchLower) ||
+      (event.client.name || '').toLowerCase().includes(searchLower) ||
+      eventTypeLabels[event.type].toLowerCase().includes(searchLower)
+    
+    return clientMatch && searchMatch
+  })
 
-  // Cálculos para estatísticas
   const totalPositive = filteredEvents
     .filter((e: Event) => e.type === 'DEPOSIT' || e.type === 'INCOME')
     .reduce((sum: number, e: Event) => sum + e.value, 0)
@@ -148,7 +158,6 @@ export default function EventsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Eventos Financeiros</h1>
@@ -182,7 +191,6 @@ export default function EventsPage() {
         </Dialog>
       </div>
 
-      {/* Client Filter */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Filtro por Cliente</CardTitle>
@@ -190,17 +198,23 @@ export default function EventsPage() {
         <CardContent>
           <div className="flex items-center space-x-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Digite o ID do cliente para filtrar eventos..."
-              value={selectedClient}
-              onChange={(e) => setSelectedClient(e.target.value)}
-              className="max-w-sm"
-            />
+            <Select onValueChange={(value) => setSelectedClient(value)} defaultValue={selectedClient}>
+              <SelectTrigger className="max-w-sm">
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os clientes</SelectItem>
+                {clientsData?.clients.map((client: Client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -257,7 +271,6 @@ export default function EventsPage() {
         </Card>
       </div>
 
-      {/* Search and Table */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Eventos</CardTitle>
@@ -326,7 +339,7 @@ export default function EventsPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{event.clientName || event.clientId}</TableCell>
+                    <TableCell>{event.client.name || event.clientId}</TableCell>
                     <TableCell>
                       <span className={`font-medium ${
                         (event.type === 'DEPOSIT' || event.type === 'INCOME') ? 'text-green-600' : 'text-red-600'
@@ -388,13 +401,12 @@ export default function EventsPage() {
         </CardContent>
       </Card>
 
-      {/* Impact Alert */}
       {filteredEvents.length > 0 && (
         <Alert>
           <TrendingUp className="h-4 w-4" />
           <AlertDescription>
             <strong>Impacto na Projeção:</strong> Os eventos cadastrados afetarão automaticamente 
-            as projeções patrimoniais no simulador. Events recorrentes são processados mensalmente/anualmente 
+            as projeções patrimoniais no simulador. Eventos recorrentes são processados mensalmente/anualmente 
             conforme configurado.
           </AlertDescription>
         </Alert>

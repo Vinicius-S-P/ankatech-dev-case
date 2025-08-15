@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { InsuranceForm } from "@/components/forms/insurance-form"
-import { useInsurance, useDeleteInsurance } from "@/hooks/use-api"
+import { useInsurance, useDeleteInsurance, useClients } from "@/hooks/use-api"
 import { 
   Shield,
   Plus,
@@ -49,6 +49,19 @@ interface Insurance {
   updatedAt: string
 }
 
+interface Client {
+  id: string
+  name: string
+  email: string
+  age: number
+  totalWealth: number
+  alignmentPercentage?: number
+  active: boolean
+  advisorId?: string
+  createdAt: string
+  updatedAt: string
+}
+
 const insuranceTypeLabels = {
   LIFE: 'Vida',
   DISABILITY: 'Invalidez',
@@ -76,7 +89,6 @@ export default function InsurancePage() {
   const [editingInsurance, setEditingInsurance] = useState<Insurance | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'distribution' | 'reports'>('table')
   
-  // Initialize view mode from URL params
   useEffect(() => {
     const view = searchParams.get('view')
     if (view === 'distribution' || view === 'reports') {
@@ -85,6 +97,7 @@ export default function InsurancePage() {
   }, [searchParams])
   
   const { data: insuranceData, isLoading, error } = useInsurance(1, 50, search)
+  const { data: clientsData } = useClients()
   const deleteInsurance = useDeleteInsurance()
 
   const handleDeleteInsurance = async (insuranceId: string, policyNumber: string) => {
@@ -123,16 +136,18 @@ export default function InsurancePage() {
     return new Date(dateString).toLocaleDateString('pt-BR')
   }
 
-  const insurance: Insurance[] = (insuranceData?.data as Insurance[]) ?? []
+  const clients = clientsData?.clients || [];
+  const insurance: Insurance[] = (insuranceData?.insurance as Insurance[] || []).map(ins => ({
+    ...ins,
+    clientName: clients.find((client: Client) => client.id === ins.clientId)?.name || ins.clientId
+  }));
 
-  // Cálculos para estatísticas
   const totalCoverage = insurance.reduce((sum: number, ins: Insurance) => sum + ins.coverage, 0)
   const totalPremiums = insurance.reduce((sum: number, ins: Insurance) => {
     const annualPremium = ins.premiumFrequency === 'MONTHLY' ? ins.premium * 12 : ins.premium
     return sum + annualPremium
   }, 0)
 
-  // Dados para distribuição por tipo
   const distributionData = Object.entries(insuranceTypeLabels).map(([type, label]) => {
     const key = type as keyof typeof insuranceTypeLabels
     const typeInsurance = insurance.filter((ins: Insurance) => ins.type === key)
@@ -148,7 +163,6 @@ export default function InsurancePage() {
     }
   }).filter(item => item.count > 0)
 
-  // Dados para gráfico de prêmios por provedor
   type ProviderAgg = { provider: string; premium: number; coverage: number; policies: number }
   const providerData: ProviderAgg[] = insurance.reduce<ProviderAgg[]>((acc, ins) => {
     const existing = acc.find(item => item.provider === ins.provider)
@@ -184,7 +198,6 @@ export default function InsurancePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Seguros</h1>
@@ -244,7 +257,6 @@ export default function InsurancePage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -301,7 +313,6 @@ export default function InsurancePage() {
         </Card>
       </div>
 
-      {/* Main Content */}
       {viewMode === 'table' && (
         <Card>
           <CardHeader>

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { eventSchema, EventFormData } from "@/lib/schemas"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,35 +16,7 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { useClients, useCreateEvent, useUpdateEvent } from "@/hooks/use-api"
 import { toast } from "sonner"
 
-const eventSchema = z.object({
-  clientId: z.string().min(1, "Cliente é obrigatório"),
-  type: z.enum(["DEPOSIT", "WITHDRAWAL", "INCOME", "EXPENSE"], {
-    message: "Tipo de evento é obrigatório"
-  }),
-  name: z.string().min(1, "Nome do evento é obrigatório"),
-  description: z.string().optional(),
-  value: z.number().positive("Valor deve ser positivo"),
-  frequency: z.enum(["ONCE", "MONTHLY", "YEARLY"]),
-  startDate: z.date({
-    message: "Data de início é obrigatória"
-  }),
-  endDate: z.date().optional()
-}).refine((data) => {
-  // Se frequency não for ONCE, endDate deve estar presente
-  if (data.frequency !== "ONCE" && !data.endDate) {
-    return false
-  }
-  // Se endDate existe, deve ser posterior a startDate
-  if (data.endDate && data.endDate <= data.startDate) {
-    return false
-  }
-  return true
-}, {
-  message: "Para eventos recorrentes, a data de fim deve ser posterior à data de início",
-  path: ["endDate"]
-})
 
-type EventFormData = z.infer<typeof eventSchema>
 
 interface Client {
   id: string
@@ -117,8 +90,8 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
       description: event?.description || "",
       value: event?.value || 0,
       frequency: event?.frequency || "ONCE",
-      startDate: event?.startDate ? new Date(event.startDate) : new Date(),
-      endDate: event?.endDate ? new Date(event.endDate) : undefined
+      startDate: event?.startDate ? new Date(event.startDate).toISOString() : new Date().toISOString(),
+      endDate: event?.endDate ? new Date(event.endDate).toISOString() : undefined
     }
   })
 
@@ -130,8 +103,8 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
     try {
       const eventData = {
         ...data,
-        startDate: data.startDate.toISOString(),
-        endDate: data.endDate?.toISOString()
+        startDate: data.startDate,
+        endDate: data.endDate
       }
 
       if (event) {
@@ -317,8 +290,8 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
                   <FormLabel>Data de Início</FormLabel>
                   <FormControl>
                     <DatePicker
-                      value={field.value}
-                      onChange={field.onChange}
+                      value={field.value ? new Date(field.value) : undefined}
+                      onChange={(date) => field.onChange(date?.toISOString() || "")}
                       placeholder="Selecione a data de início"
                     />
                   </FormControl>
@@ -337,8 +310,8 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
                     <FormLabel>Data de Fim</FormLabel>
                     <FormControl>
                       <DatePicker
-                        value={field.value}
-                        onChange={field.onChange}
+                        value={field.value ? new Date(field.value) : undefined}
+                        onChange={(date) => field.onChange(date?.toISOString() || "")}
                         placeholder="Selecione a data de fim"
                       />
                     </FormControl>

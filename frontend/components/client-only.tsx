@@ -8,10 +8,6 @@ interface ClientOnlyProps {
   fallback?: ReactNode
 }
 
-/**
- * Componente que só renderiza no cliente
- * Evita problemas de hidratação SSR
- */
 export function ClientOnly({ children, fallback = null }: ClientOnlyProps) {
   const isClient = useClientOnly()
 
