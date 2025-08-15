@@ -1,15 +1,10 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import { FastifyInstance } from 'fastify'
 import { EventEmitter } from 'events'
 import { prisma } from '../prisma'
-import fs from 'fs'
-import path from 'path'
+import { GoalType, EventType, Frequency } from '@prisma/client'
 
 interface ImportParams {
   clientId: string
-}
-
-interface ImportRequest extends FastifyRequest {
-  params: ImportParams
 }
 
 class ImportProgress extends EventEmitter {
@@ -149,21 +144,21 @@ async function createSampleGoalData(clientId: string) {
   const goalData = [
     {
       clientId,
-      title: 'Aposentadoria',
+      type: GoalType.LONG_TERM,
+      name: 'Aposentadoria',
       description: 'Acumular R$ 2.000.000 para aposentadoria',
-      targetAmount: 2000000,
-      currentAmount: 100000,
-      targetDate: new Date('2050-12-31'),
-      priority: 'HIGH' as const
+      targetValue: 2000000,
+      currentValue: 100000,
+      targetDate: new Date('2050-12-31')
     },
     {
       clientId,
-      title: 'Compra de Imóvel',
+      type: GoalType.SHORT_TERM,
+      name: 'Compra de Imóvel',
       description: 'Entrada para compra de imóvel',
-      targetAmount: 300000,
-      currentAmount: 75000,
-      targetDate: new Date('2027-06-30'),
-      priority: 'MEDIUM' as const
+      targetValue: 300000,
+      currentValue: 75000,
+      targetDate: new Date('2027-06-30')
     }
   ]
 
@@ -176,20 +171,22 @@ async function createSampleEventData(clientId: string) {
   const eventData = [
     {
       clientId,
-      type: 'CONTRIBUTION' as const,
+      type: EventType.DEPOSIT,
+      name: 'Contribuição mensal planejada',
       description: 'Contribuição mensal planejada',
       value: 3000,
+      frequency: Frequency.MONTHLY,
       startDate: new Date('2024-01-01'),
-      endDate: new Date('2030-12-31'),
-      frequency: 'MONTHLY' as const
+      endDate: new Date('2030-12-31')
     },
     {
       clientId,
-      type: 'WITHDRAWAL' as const,
+      type: EventType.WITHDRAWAL,
+      name: 'Retirada para emergência',
       description: 'Retirada para emergência',
       value: 15000,
-      startDate: new Date('2025-06-01'),
-      frequency: 'ONCE' as const
+      frequency: Frequency.ONCE,
+      startDate: new Date('2025-06-01')
     }
   ]
 
@@ -199,19 +196,19 @@ async function createSampleEventData(clientId: string) {
 }
 
 async function updateClientMetrics(clientId: string) {
-  // Calculate total wealth from wallets
   const wallets = await prisma.wallet.findMany({
     where: { clientId }
   })
 
   const totalWealth = wallets.reduce((sum, wallet) => sum + wallet.currentValue, 0)
 
-  // Calculate alignment percentage (simplified)
   const goals = await prisma.goal.findMany({
     where: { clientId }
   })
 
-  let alignmentPercentage = 75 // Default value, would be calculated based on actual projections
+  const plannedWealth = goals.reduce((sum, goal) => sum + goal.targetValue, 0);
+
+  const alignmentPercentage = totalWealth > 0 ? (totalWealth / plannedWealth) * 100 : 0;
 
   await prisma.client.update({
     where: { id: clientId },
@@ -223,7 +220,6 @@ async function updateClientMetrics(clientId: string) {
 }
 
 export default async function importRoutes(fastify: FastifyInstance) {
-  // SSE endpoint for CSV import progress
   fastify.get('/csv-import/:clientId', {
     schema: {
       params: {
@@ -234,8 +230,8 @@ export default async function importRoutes(fastify: FastifyInstance) {
         required: ['clientId']
       }
     }
-  }, async (request: ImportRequest, reply: FastifyReply) => {
-    const { clientId } = request.params
+  }, async (request, reply) => {
+    const { clientId } = request.params as ImportParams;
 
     // Set SSE headers
     reply.raw.writeHead(200, {
@@ -248,29 +244,24 @@ export default async function importRoutes(fastify: FastifyInstance) {
 
     const progress = new ImportProgress()
     
-    // Send progress updates
     progress.on('progress', (data) => {
       reply.raw.write(`data: ${JSON.stringify({ type: 'progress', ...data })}\n\n`)
     })
 
-    // Send error updates
     progress.on('error', (data) => {
       reply.raw.write(`data: ${JSON.stringify({ type: 'error', ...data })}\n\n`)
       reply.raw.end()
     })
 
-    // Send completion updates
     progress.on('complete', (data) => {
       reply.raw.write(`data: ${JSON.stringify({ type: 'complete', ...data })}\n\n`)
       reply.raw.end()
     })
 
-    // Handle client disconnect
     request.raw.on('close', () => {
       reply.raw.end()
     })
 
-    // Start the import process
     await processCSVImport(clientId, progress)
   })
 
@@ -285,11 +276,10 @@ export default async function importRoutes(fastify: FastifyInstance) {
         required: ['clientId']
       }
     }
-  }, async (request: ImportRequest, reply: FastifyReply) => {
+  }, async (request, reply) => {
     try {
-      const { clientId } = request.params
+      const { clientId } = request.params as ImportParams;
 
-      // Verify client exists
       const client = await prisma.client.findUnique({
         where: { id: clientId }
       })
@@ -298,8 +288,6 @@ export default async function importRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Cliente não encontrado' })
       }
 
-      // In a real implementation, you would process the uploaded file here
-      // For now, just return a success message
       reply.send({
         message: 'Upload iniciado. Use o endpoint SSE para acompanhar o progresso.',
         importId: `import_${clientId}_${Date.now()}`

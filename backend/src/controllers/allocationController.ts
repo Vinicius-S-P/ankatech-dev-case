@@ -31,16 +31,16 @@ export const allocationController = {
         }
       });
 
-      res.status(201).json(allocation);
-    } catch (error) {
+      return res.status(201).json(allocation);
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ errors: error.errors });
+        return res.status(400).json({ errors: error.flatten().fieldErrors });
       }
-      res.status(500).json({ message: 'Internal server error' });
+      return res.status(500).json({ message: 'Internal server error' });
     }
   },
 
-  async getCurrent(req: Request, res: Response) {
+  async getCurrent(_req: Request, res: Response) {
     try {
       const allocation = await prisma.allocation.findFirst({
         orderBy: { date: 'desc' }
@@ -50,9 +50,9 @@ export const allocationController = {
         return res.status(404).json({ message: 'No allocation found' });
       }
 
-      res.json(allocation);
-    } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
+      return res.json(allocation);
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Internal server error' });
     }
   },
 
@@ -73,9 +73,9 @@ export const allocationController = {
         take: query.limit || 50
       });
 
-      res.json(allocations);
-    } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
+      return res.json(allocations);
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Internal server error' });
     }
   },
 
@@ -92,12 +92,12 @@ export const allocationController = {
         }
       });
 
-      res.json(allocation);
-    } catch (error) {
+      return res.json(allocation);
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ errors: error.errors });
+        return res.status(400).json({ errors: error.flatten().fieldErrors });
       }
-      res.status(500).json({ message: 'Internal server error' });
+      return res.status(500).json({ message: 'Internal server error' });
     }
   },
 
@@ -109,9 +109,9 @@ export const allocationController = {
         where: { id }
       });
 
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
+      return res.status(204).send();
+    } catch (error: any) {
+      return res.status(500).json({ message: 'Internal server error' });
     }
   }
 };

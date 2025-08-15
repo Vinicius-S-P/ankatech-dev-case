@@ -5,7 +5,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Schemas
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6)
@@ -20,9 +19,8 @@ const registerSchema = z.object({
 
 export default async function authRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Register endpoint
   fastify.post('/register', {
     schema: {
       description: 'Register a new user',
@@ -66,7 +64,6 @@ export default async function authRoutes(
     try {
       const data = registerSchema.parse(request.body);
       
-      // Check if user already exists
       const existingUser = await prisma.user.findUnique({
         where: { email: data.email }
       });
@@ -77,10 +74,8 @@ export default async function authRoutes(
         });
       }
       
-      // Hash password
       const hashedPassword = await bcrypt.hash(data.password, 10);
       
-      // Create user
       const user = await prisma.user.create({
         data: {
           email: data.email,
@@ -96,7 +91,6 @@ export default async function authRoutes(
         }
       });
       
-      // Generate token
       const token = fastify.jwt.sign({
         id: user.id,
         email: user.email,
@@ -118,7 +112,6 @@ export default async function authRoutes(
     }
   });
   
-  // Login endpoint
   fastify.post('/login', {
     schema: {
       description: 'Login with email and password',
@@ -159,7 +152,6 @@ export default async function authRoutes(
     try {
       const data = loginSchema.parse(request.body);
       
-      // Find user
       const user = await prisma.user.findUnique({
         where: { email: data.email }
       });
@@ -170,7 +162,6 @@ export default async function authRoutes(
         });
       }
       
-      // Check password
       const validPassword = await bcrypt.compare(data.password, user.password);
       
       if (!validPassword) {
@@ -179,14 +170,12 @@ export default async function authRoutes(
         });
       }
       
-      // Check if user is active
       if (!user.active) {
         return reply.status(401).send({
           message: 'Account is deactivated'
         });
       }
       
-      // Generate token
       const token = fastify.jwt.sign({
         id: user.id,
         email: user.email,
@@ -213,7 +202,6 @@ export default async function authRoutes(
     }
   });
   
-  // Verify token endpoint
   fastify.get('/verify', {
     schema: {
       description: 'Verify JWT token',
@@ -244,7 +232,6 @@ export default async function authRoutes(
     });
   });
   
-  // Refresh token endpoint
   fastify.post('/refresh', {
     schema: {
       description: 'Refresh JWT token',
@@ -263,7 +250,6 @@ export default async function authRoutes(
   }, async (request, reply) => {
     const user = (request as any).user;
     
-    // Generate new token
     const token = fastify.jwt.sign({
       id: user.id,
       email: user.email,

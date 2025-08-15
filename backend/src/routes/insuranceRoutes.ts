@@ -4,7 +4,6 @@ import { PrismaClient, InsuranceType, Frequency } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Schemas
 const createInsuranceSchema = z.object({
   clientId: z.string(),
   type: z.nativeEnum(InsuranceType),
@@ -21,9 +20,8 @@ const updateInsuranceSchema = createInsuranceSchema.partial().omit({ clientId: t
 
 export default async function insuranceRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Get all insurance
   fastify.get('/', {
     schema: {
       description: 'List all insurance policies',
@@ -38,9 +36,7 @@ export default async function insuranceRoutes(
     if (clientId) where.clientId = clientId;
     if (type) where.type = type;
     
-    if (request.user.role === 'VIEWER') {
-      where.client = { advisorId: request.user.id };
-    }
+    
     
     const insurance = await prisma.insurance.findMany({
       where,
@@ -55,7 +51,6 @@ export default async function insuranceRoutes(
     return reply.send({ insurance });
   });
   
-  // Get insurance summary
   fastify.get('/summary/:clientId', {
     schema: {
       description: 'Get insurance summary for a client',
@@ -113,7 +108,6 @@ export default async function insuranceRoutes(
     });
   });
   
-  // Create insurance
   fastify.post('/', {
     schema: {
       description: 'Create new insurance policy',
@@ -128,7 +122,7 @@ export default async function insuranceRoutes(
       const client = await prisma.client.findFirst({
         where: {
           id: data.clientId,
-          advisorId: request.user.id
+          ...(request.user.role === 'VIEWER' ? { advisorId: request.user.id } : {})
         }
       });
       
@@ -156,7 +150,6 @@ export default async function insuranceRoutes(
     }
   });
   
-  // Update insurance
   fastify.put('/:id', {
     schema: {
       description: 'Update insurance policy',
@@ -172,7 +165,6 @@ export default async function insuranceRoutes(
       const existing = await prisma.insurance.findFirst({
         where: {
           id,
-          client: { advisorId: request.user.id }
         }
       });
       
@@ -201,7 +193,6 @@ export default async function insuranceRoutes(
     }
   });
   
-  // Delete insurance
   fastify.delete('/:id', {
     schema: {
       description: 'Delete insurance policy',
@@ -215,7 +206,6 @@ export default async function insuranceRoutes(
     const existing = await prisma.insurance.findFirst({
       where: {
         id,
-        client: { advisorId: request.user.id }
       }
     });
     

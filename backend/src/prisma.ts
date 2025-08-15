@@ -4,7 +4,6 @@ declare global {
   var __prisma: PrismaClient | undefined
 }
 
-// Singleton pattern for Prisma Client
 export const prisma = globalThis.__prisma || new PrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {

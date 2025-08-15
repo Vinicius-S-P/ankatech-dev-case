@@ -1,17 +1,18 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, GoalType } from '@prisma/client';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
 const createGoalSchema = z.object({
-  retirementAge: z.number().int().positive(),
-  monthlyIncome: z.number().positive(),
-  targetReturn: z.string().min(1),
-  currentProgress: z.number().min(0).optional(),
-  targetAmount: z.number().positive(),
-  annualContribution: z.number().min(0).optional(),
-  date: z.string().datetime().optional()
+  clientId: z.string(),
+  type: z.nativeEnum(GoalType),
+  name: z.string(),
+  description: z.string().optional(),
+  targetValue: z.number().positive(),
+  targetDate: z.string().datetime(),
+  currentValue: z.number().min(0).optional(),
+  monthlyIncome: z.number().positive().optional()
 });
 
 const updateGoalSchema = createGoalSchema.partial();
@@ -24,11 +25,11 @@ export const goalController = {
       const goal = await prisma.goal.create({
         data: {
           ...data,
-          date: data.date ? new Date(data.date) : new Date()
+          targetDate: new Date(data.targetDate),
         }
       });
 
-      res.status(201).json(goal);
+      return res.status(201).json(goal);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.flatten().fieldErrors });
@@ -40,10 +41,10 @@ export const goalController = {
   async findAll(_req: Request, res: Response) {
     try {
       const goals = await prisma.goal.findMany({
-        orderBy: { date: 'desc' }
+        orderBy: { targetDate: 'desc' }
       });
 
-      res.json(goals);
+      return res.json(goals);
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -52,22 +53,22 @@ export const goalController = {
   async getCurrent(_req: Request, res: Response) {
     try {
       const goal = await prisma.goal.findFirst({
-        orderBy: { date: 'desc' }
+        orderBy: { targetDate: 'desc' }
       });
 
       if (!goal) {
         return res.status(404).json({ message: 'No goal found' });
       }
 
-      const currentAge = 35;
-      const monthsToRetirement = (goal.retirementAge - currentAge) * 12;
-      const monthlyContribution = goal.annualContribution / 12;
-      const requiredMonthlyReturn = (goal.monthlyIncome * 12) / goal.targetAmount;
-      const projectedValue = goal.targetAmount * (1 + goal.currentProgress / 100);
+      const yearsToTarget = goal.targetDate.getFullYear() - new Date().getFullYear();
+      const monthsToTarget = yearsToTarget * 12;
+      const monthlyContribution = goal.currentValue / monthsToTarget;
+      const requiredMonthlyReturn = (goal.monthlyIncome || 0) * 12 / goal.targetValue;
+      const projectedValue = goal.targetValue * (1 + (goal.currentValue / goal.targetValue));
 
-      res.json({
+      return res.json({
         ...goal,
-        monthsToRetirement,
+        monthsToTarget,
         monthlyContribution,
         requiredMonthlyReturn,
         projectedValue
@@ -89,7 +90,7 @@ export const goalController = {
         return res.status(404).json({ message: 'Goal not found' });
       }
 
-      res.json(goal);
+      return res.json(goal);
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -104,11 +105,11 @@ export const goalController = {
         where: { id },
         data: {
           ...data,
-          date: data.date ? new Date(data.date) : undefined
+          targetDate: data.targetDate ? new Date(data.targetDate) : undefined
         }
       });
 
-      res.json(goal);
+      return res.json(goal);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.flatten().fieldErrors });
@@ -125,7 +126,7 @@ export const goalController = {
         where: { id }
       });
 
-      res.status(204).send();
+      return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }

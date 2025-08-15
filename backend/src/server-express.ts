@@ -8,7 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const prisma = new PrismaClient();
 
-// Middleware
 app.use(helmet());
 app.use(cors({
   origin: ['http://localhost:3000'],
@@ -19,17 +18,14 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Simple test routes
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API is working' });
 });
 
-// Get all investments
 app.get('/api/investments', async (_req, res) => {
   try {
     const investments = await prisma.investment.findMany();
@@ -39,7 +35,6 @@ app.get('/api/investments', async (_req, res) => {
   }
 });
 
-// Get investments by asset type
 app.get('/api/investments/by-asset-type', async (_req, res) => {
   try {
     const investments = await prisma.investment.findMany({
@@ -72,7 +67,6 @@ app.get('/api/investments/by-asset-type', async (_req, res) => {
   }
 });
 
-// Get all allocations
 app.get('/api/allocations/current', async (_req, res) => {
   try {
     const allocation = await prisma.allocation.findFirst({
@@ -84,19 +78,17 @@ app.get('/api/allocations/current', async (_req, res) => {
   }
 });
 
-// Get current goal
 app.get('/api/goals/current', async (_req, res) => {
   try {
     const goal = await prisma.goal.findFirst({
-      orderBy: { date: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
-    res.json(goal || {});
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch goal' });
+    return res.json(goal || {});
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to fetch goal' });
   }
 });
 
-// Get all KPIs
 app.get('/api/kpis', async (_req, res) => {
   try {
     const kpis = await prisma.kPIData.findMany();
@@ -106,7 +98,6 @@ app.get('/api/kpis', async (_req, res) => {
   }
 });
 
-// Get all data items
 app.get('/api/data', async (_req, res) => {
   try {
     const data = await prisma.data.findMany();
@@ -116,7 +107,6 @@ app.get('/api/data', async (_req, res) => {
   }
 });
 
-// Clients API
 app.get('/api/clients', async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '' } = req.query;
@@ -176,10 +166,10 @@ app.get('/api/clients/:id', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
     
-    res.json(client);
+    return res.json(client);
   } catch (error) {
     console.error('Error fetching client:', error);
-    res.status(500).json({ error: 'Failed to fetch client' });
+    return res.status(500).json({ error: 'Failed to fetch client' });
   }
 });
 
@@ -201,14 +191,13 @@ app.delete('/api/clients/:id', async (req, res) => {
     await prisma.client.delete({
       where: { id: req.params.id }
     });
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error) {
     console.error('Error deleting client:', error);
-    res.status(500).json({ error: 'Failed to delete client' });
+    return res.status(500).json({ error: 'Failed to delete client' });
   }
 });
 
-// Goals API
 app.get('/api/goals', async (req, res) => {
   try {
     const { clientId } = req.query;
@@ -275,10 +264,10 @@ app.get('/api/goals/:id', async (req, res) => {
       return res.status(404).json({ error: 'Goal not found' });
     }
     
-    res.json(goal);
+    return res.json(goal);
   } catch (error) {
     console.error('Error fetching goal:', error);
-    res.status(500).json({ error: 'Failed to fetch goal' });
+    return res.status(500).json({ error: 'Failed to fetch goal' });
   }
 });
 
@@ -294,7 +283,6 @@ app.delete('/api/goals/:id', async (req, res) => {
   }
 });
 
-// Wallets API
 app.get('/api/wallets', async (req, res) => {
   try {
     const { clientId } = req.query;
@@ -336,10 +324,10 @@ app.get('/api/wallets/:id', async (req, res) => {
       return res.status(404).json({ error: 'Wallet not found' });
     }
     
-    res.json(wallet);
+    return res.json(wallet);
   } catch (error) {
     console.error('Error fetching wallet:', error);
-    res.status(500).json({ error: 'Failed to fetch wallet' });
+    return res.status(500).json({ error: 'Failed to fetch wallet' });
   }
 });
 
@@ -382,9 +370,6 @@ app.post('/api/wallets', async (req, res) => {
     
     console.log('✅ All validations passed, creating wallet...');
     
-    // Remove campos que não existem no schema do Prisma
-    const { targetPercentage, ...validData } = req.body;
-    
     const wallet = await prisma.wallet.create({
       data: {
         clientId,
@@ -396,15 +381,15 @@ app.post('/api/wallets', async (req, res) => {
     });
     
     console.log('✅ Wallet created successfully:', wallet.id);
-    res.status(201).json(wallet);
-  } catch (error) {
+    return res.status(201).json(wallet);
+  } catch (error: any) {
     console.error('❌ Error creating wallet:', error);
     console.error('Error details:', {
       message: error.message,
       code: error.code,
       meta: error.meta
     });
-    res.status(500).json({ error: 'Failed to create wallet', details: error.message });
+    return res.status(500).json({ error: 'Failed to create wallet', details: error.message });
   }
 });
 
@@ -433,7 +418,6 @@ app.delete('/api/wallets/:id', async (req, res) => {
   }
 });
 
-// Events API
 app.get('/api/events', async (req, res) => {
   try {
     const { clientId } = req.query;
@@ -454,7 +438,7 @@ app.get('/api/events', async (req, res) => {
       data: events,
       total: events.length
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching events:', error);
     res.status(500).json({ error: 'Failed to fetch events' });
   }
@@ -475,10 +459,10 @@ app.get('/api/events/:id', async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     
-    res.json(event);
-  } catch (error) {
+    return res.json(event);
+  } catch (error: any) {
     console.error('Error fetching event:', error);
-    res.status(500).json({ error: 'Failed to fetch event' });
+    return res.status(500).json({ error: 'Failed to fetch event' });
   }
 });
 
@@ -519,7 +503,6 @@ app.delete('/api/events/:id', async (req, res) => {
   }
 });
 
-// Insurance API
 app.get('/api/insurance', async (req, res) => {
   try {
     const { clientId } = req.query;
@@ -561,10 +544,10 @@ app.get('/api/insurance/:id', async (req, res) => {
       return res.status(404).json({ error: 'Insurance not found' });
     }
     
-    res.json(insurance);
-  } catch (error) {
+    return res.json(insurance);
+  } catch (error: any) {
     console.error('Error fetching insurance:', error);
-    res.status(500).json({ error: 'Failed to fetch insurance' });
+    return res.status(500).json({ error: 'Failed to fetch insurance' });
   }
 });
 
@@ -605,12 +588,10 @@ app.delete('/api/insurance/:id', async (req, res) => {
   }
 });
 
-// Auth API (Simple implementation - sem JWT real)
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    // Simulação básica de login
     if (email && password) {
       res.json({
         token: 'mock-jwt-token',
@@ -634,7 +615,6 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const userData = req.body;
     
-    // Simulação de registro
     res.status(201).json({
       id: 'new-user-id',
       email: userData.email,
@@ -646,9 +626,8 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.get('/api/auth/verify', async (req, res) => {
+app.get('/api/auth/verify', async (_req, res) => {
   try {
-    // Simulação de verificação
     res.json({
       user: {
         id: '1',
@@ -663,33 +642,41 @@ app.get('/api/auth/verify', async (req, res) => {
   }
 });
 
-// Client extras
 app.get('/api/clients/:id/alignment', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Simulação de cálculo de alinhamento
-    res.json({
-      currentWealth: 150000,
-      plannedWealth: 200000,
-      alignmentPercentage: 75,
-      category: 'Parcialmente Alinhado',
-      color: 'yellow-light',
-      suggestions: [
-        {
-          type: 'INCREASE_CONTRIBUTION',
-          message: 'Aumente contribuição em R$ 2.083,33 por 24 meses',
-          impact: 'Alinhamento aumentará para 90%'
-        }
-      ]
+    const client = await prisma.client.findFirst({
+      where: { 
+        id
+      },
+      include: {
+        wallets: true,
+        goals: true
+      }
     });
-  } catch (error) {
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    const currentWealth = client.wallets.reduce((sum: number, wallet: any) => sum + wallet.currentValue, 0);
+    const plannedWealth = client.goals.reduce((sum: number, goal: any) => sum + goal.targetValue, 0);
+    const alignmentPercentage = currentWealth > 0 ? (currentWealth / plannedWealth) * 100 : 0;
+
+    return res.json({
+      currentWealth,
+      plannedWealth,
+      alignmentPercentage,
+      suggestions: []
+    });
+  } catch (error: any) {
     console.error('Error fetching alignment:', error);
-    res.status(500).json({ error: 'Failed to fetch alignment' });
+    return res.status(500).json({ error: 'Failed to fetch alignment' });
   }
 });
 
-app.get('/api/clients/:id/suggestions', async (req, res) => {
+app.get('/api/clients/:id/suggestions', async (_req, res) => {
   try {
     res.json({
       suggestions: [
@@ -703,7 +690,6 @@ app.get('/api/clients/:id/suggestions', async (req, res) => {
   }
 });
 
-// Simulations API
 app.get('/api/simulations', async (req, res) => {
   try {
     const { clientId } = req.query;
@@ -745,10 +731,10 @@ app.get('/api/simulations/:id', async (req, res) => {
       return res.status(404).json({ error: 'Simulation not found' });
     }
     
-    res.json(simulation);
-  } catch (error) {
+    return res.json(simulation);
+  } catch (error: any) {
     console.error('Error fetching simulation:', error);
-    res.status(500).json({ error: 'Failed to fetch simulation' });
+    return res.status(500).json({ error: 'Failed to fetch simulation' });
   }
 });
 
@@ -789,12 +775,10 @@ app.delete('/api/simulations/:id', async (req, res) => {
   }
 });
 
-// Projections API
 app.post('/api/projections/simulate', async (req, res) => {
   try {
     const projectionData = req.body;
     
-    // Simulação básica de projeção
     const result = {
       id: 'projection-' + Date.now(),
       clientId: projectionData.clientId,
@@ -820,9 +804,8 @@ app.post('/api/projections/simulate', async (req, res) => {
 app.post('/api/projections/wealth-curve/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const params = req.body;
+    // const params = req.body;
     
-    // Simulação de curva de riqueza
     const wealthCurve = {
       clientId,
       data: [
@@ -846,12 +829,10 @@ app.post('/api/projections/wealth-curve/:clientId', async (req, res) => {
   }
 });
 
-// Wallet rebalancing
 app.get('/api/wallets/rebalancing/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params;
     
-    // Simulação de rebalanceamento
     const rebalancing = {
       clientId,
       currentAllocation: [
@@ -874,12 +855,10 @@ app.get('/api/wallets/rebalancing/:clientId', async (req, res) => {
   }
 });
 
-// 404 handler
 app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
