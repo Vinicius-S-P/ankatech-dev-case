@@ -2,6 +2,7 @@
 
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -9,10 +10,28 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { clientSchema, type ClientFormData } from "@/lib/schemas"
+import { clientSchema, type ClientFormData, CivilStatus, ChildrenStatus, DependantsStatus } from "@/lib/schemas"
 import { useCreateClient, useUpdateClient, useAuth } from "@/hooks/use-api"
 import { Loader2, Save, X } from "lucide-react"
 import { toast } from "sonner"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+
+const civilStatusOptions = {
+  [CivilStatus.enum.SINGLE]: "Solteiro(a)",
+  [CivilStatus.enum.MARRIED]: "Casado(a)",
+  [CivilStatus.enum.DIVORCED]: "Divorciado(a)",
+  [CivilStatus.enum.WIDOWED]: "Viúvo(a)",
+}
+
+const childrenStatusOptions = {
+  [ChildrenStatus.enum.HAS_CHILDREN]: "Tem filhos",
+  [ChildrenStatus.enum.NO_CHILDREN]: "Não tem filhos",
+}
+
+const dependantsStatusOptions = {
+  [DependantsStatus.enum.HAS_DEPENDANTS]: "Tem dependentes financeiros",
+  [DependantsStatus.enum.NO_DEPENDANTS]: "Não tem dependentes financeiros",
+}
 
 interface ClientFormProps {
   client?: ClientFormData
@@ -34,11 +53,9 @@ export function ClientForm({ client, onSuccess, onCancel }: ClientFormProps) {
       email: client?.email || "",
       age: client?.age || 25,
       active: client?.active ?? true,
-      familyProfile: client?.familyProfile || "",
+      familyProfile: client?.familyProfile || [],
       advisorId: client?.advisorId || user?.id || "",
-      totalWealth: client?.totalWealth || 0,
-      alignmentPercentage: client?.alignmentPercentage || 0,
-      alignmentCategory: client?.alignmentCategory || "MEDIUM_HIGH",
+      totalWealth: client?.totalWealth || 0
     },
   })
 
@@ -164,72 +181,111 @@ export function ClientForm({ client, onSuccess, onCancel }: ClientFormProps) {
                 )}
               />
 
+              
+            </div>
+
+            
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="alignmentPercentage"
+                name="familyProfile"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Alinhamento (%)</FormLabel>
+                  <FormItem className="space-y-3">
+                    <FormLabel>Estado Civil</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="85" 
-                        type="number" 
-                        min="0" 
-                        max="100"
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                      />
+                      <RadioGroup
+                        onValueChange={(value) => {
+                          const currentProfile = field.value || [];
+                          const newProfile = currentProfile.filter(item => !Object.values(CivilStatus.enum).includes(item as z.infer<typeof CivilStatus>));
+                          field.onChange([...newProfile, value]);
+                        }}
+                        value={field.value?.find(item => Object.values(CivilStatus.enum).includes(item as z.infer<typeof CivilStatus>))}
+                        className="flex flex-col space-y-1"
+                      >
+                        {Object.entries(civilStatusOptions).map(([key, value]) => (
+                          <FormItem key={key} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={key} />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {value}
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="familyProfile"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Filhos</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={(value) => {
+                          const currentProfile = field.value || [];
+                          const newProfile = currentProfile.filter(item => !Object.values(ChildrenStatus.enum).includes(item as z.infer<typeof ChildrenStatus>));
+                          field.onChange([...newProfile, value]);
+                        }}
+                        value={field.value?.find(item => Object.values(ChildrenStatus.enum).includes(item as z.infer<typeof ChildrenStatus>))}
+                        className="flex flex-col space-y-1"
+                      >
+                        {Object.entries(childrenStatusOptions).map(([key, value]) => (
+                          <FormItem key={key} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={key} />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {value}
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="familyProfile"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Dependentes Financeiros</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={(value) => {
+                          const currentProfile = field.value || [];
+                          const newProfile = currentProfile.filter(item => !Object.values(DependantsStatus.enum).includes(item as z.infer<typeof DependantsStatus>));
+                          field.onChange([...newProfile, value]);
+                        }}
+                        value={field.value?.find(item => Object.values(DependantsStatus.enum).includes(item as z.infer<typeof DependantsStatus>))}
+                        className="flex flex-col space-y-1"
+                      >
+                        {Object.entries(dependantsStatusOptions).map(([key, value]) => (
+                          <FormItem key={key} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={key} />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {value}
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="alignmentCategory"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria de Alinhamento</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="HIGH">Alto (&gt; 90%)</SelectItem>
-                      <SelectItem value="MEDIUM_HIGH">Médio-Alto (70% - 90%)</SelectItem>
-                      <SelectItem value="MEDIUM_LOW">Médio-Baixo (50% - 70%)</SelectItem>
-                      <SelectItem value="LOW">Baixo (&lt; 50%)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="familyProfile"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Perfil Familiar</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Descreva o perfil familiar do cliente..."
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Informações sobre a composição e características da família
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

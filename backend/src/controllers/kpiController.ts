@@ -33,7 +33,7 @@ export const kpiController = {
         }
       });
 
-      res.status(201).json(kpi);
+      return res.status(201).json(kpi);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.flatten().fieldErrors });
@@ -66,7 +66,7 @@ export const kpiController = {
         }, {} as Record<string, number>)
       };
 
-      res.json({ kpis, summary });
+      return res.json({ kpis, summary });
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -84,7 +84,7 @@ export const kpiController = {
         return res.status(404).json({ message: 'KPI not found' });
       }
 
-      res.json(kpi);
+      return res.json(kpi);
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -103,7 +103,7 @@ export const kpiController = {
         }
       });
 
-      res.json(kpi);
+      return res.json(kpi);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.flatten().fieldErrors });
@@ -120,7 +120,7 @@ export const kpiController = {
         where: { id }
       });
 
-      res.status(204).send();
+      return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }
@@ -149,7 +149,7 @@ export const kpiController = {
         return acc;
       }, {} as Record<string, any>);
 
-      res.json(grouped);
+      return res.json(grouped);
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }

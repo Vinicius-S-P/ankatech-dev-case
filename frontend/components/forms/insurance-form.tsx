@@ -120,7 +120,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Cliente */}
             <FormField
               control={form.control}
               name="clientId"
@@ -146,7 +145,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Tipo de Seguro */}
             <FormField
               control={form.control}
               name="type"
@@ -172,7 +170,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Provedor */}
             <FormField
               control={form.control}
               name="provider"
@@ -190,7 +187,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Número da Apólice */}
             <FormField
               control={form.control}
               name="policyNumber"
@@ -208,7 +204,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Cobertura */}
             <FormField
               control={form.control}
               name="coverage"
@@ -228,7 +223,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Prêmio */}
             <FormField
               control={form.control}
               name="premium"
@@ -249,7 +243,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Frequência do Prêmio */}
             <FormField
               control={form.control}
               name="premiumFrequency"
@@ -275,7 +268,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Data de Início */}
             <FormField
               control={form.control}
               name="startDate"
@@ -294,7 +286,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
               )}
             />
 
-            {/* Data de Fim */}
             <FormField
               control={form.control}
               name="endDate"
@@ -314,7 +305,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
             />
           </div>
 
-          {/* Resumo */}
           {form.watch("coverage") > 0 && form.watch("premium") > 0 && (
             <Card>
               <CardHeader>
@@ -370,7 +360,6 @@ export function InsuranceForm({ insurance, onSuccess, onCancel }: InsuranceFormP
             </Card>
           )}
 
-          {/* Botões */}
           <div className="flex justify-end space-x-4">
             <Button
               type="button"

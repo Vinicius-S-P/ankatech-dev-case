@@ -5,9 +5,8 @@ const prisma = new PrismaClient();
 
 export default async function simulationRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Get all simulations
   fastify.get('/', {
     schema: {
       description: 'List all simulations',
@@ -38,7 +37,6 @@ export default async function simulationRoutes(
     return reply.send({ simulations });
   });
   
-  // Get simulation by ID
   fastify.get('/:id', {
     schema: {
       description: 'Get simulation by ID',
@@ -66,7 +64,6 @@ export default async function simulationRoutes(
     return reply.send(simulation);
   });
   
-  // Delete simulation
   fastify.delete('/:id', {
     schema: {
       description: 'Delete simulation',

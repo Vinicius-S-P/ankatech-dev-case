@@ -57,11 +57,6 @@ export function SuggestionsPanel({ clientId, className }: SuggestionsPanelProps)
       setIsLoading(true)
       setError(null)
       
-      // Simular chamada à API
-      // const response = await fetch(`/api/suggestions/${clientId}`)
-      // const data = await response.json()
-      
-      // Mock data para demonstração
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       const mockSuggestions: Suggestion[] = [

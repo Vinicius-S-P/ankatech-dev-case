@@ -51,6 +51,23 @@ enum AssetClass {
   OTHER
 }
 
+enum CivilStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum ChildrenStatus {
+  HAS_CHILDREN
+  NO_CHILDREN
+}
+
+enum DependantsStatus {
+  HAS_DEPENDANTS
+  NO_DEPENDANTS
+}
+
 // Models
 model User {
   id        String    @id @default(cuid())
@@ -74,7 +91,7 @@ model Client {
   email         String    @unique
   age           Int
   active        Boolean   @default(true)
-  familyProfile String?   // JSON or text description
+  familyProfile String[]  // Array of strings for civil status, children, dependants
   advisorId     String?
   
   // Relations
@@ -88,7 +105,6 @@ model Client {
   // Computed fields stored for performance
   totalWealth   Float     @default(0)
   alignmentPercentage Float @default(0)
-  alignmentCategory String?
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -126,6 +142,7 @@ model Wallet {
   description  String?
   currentValue Float
   percentage   Float       // Percentage of total portfolio
+  targetPercentage Float?
   
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt

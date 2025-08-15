@@ -3,13 +3,12 @@ import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { 
   simulateWealthCurve, 
-  generateContributionPlan,
   calculateRequiredContribution 
 } from '../services/projectionEngine';
+import { generateSuggestions } from '../services/suggestionEngine';
 
 const prisma = new PrismaClient();
 
-// Schemas
 const projectionSchema = z.object({
   clientId: z.string(),
   realRate: z.number().min(0).max(0.5).default(0.04),
@@ -27,10 +26,9 @@ const contributionPlanSchema = z.object({
 
 export default async function projectionRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Generate wealth projection
-  fastify.post('/wealth-curve', {
+  fastify.post('/simulate', {
     schema: {
       description: 'Generate wealth projection curve for a client',
       tags: ['projections'],
@@ -58,22 +56,21 @@ export default async function projectionRoutes(
                   year: { type: 'integer' },
                   startValue: { type: 'number' },
                   endValue: { type: 'number' },
-                  totalContributions: { type: 'number' },
-                  totalWithdrawals: { type: 'number' },
+                  contribution: { type: 'number' },
+                  withdrawal: { type: 'number' },
                   growth: { type: 'number' },
                   events: {
                     type: 'array',
                     items: {
                       type: 'object',
                       properties: {
-                        id: { type: 'string' },
-                        name: { type: 'string' },
                         type: { type: 'string' },
                         value: { type: 'number' },
-                        date: { type: 'string', format: 'date-time' }
+                        description: { type: 'string' }
                       }
                     }
-                  }
+                  },
+                  totalGoalProgress: { type: 'number' }
                 }
               }
             },
@@ -97,7 +94,6 @@ export default async function projectionRoutes(
     try {
       const data = projectionSchema.parse(request.body);
       
-      // Check client access
       const client = await prisma.client.findFirst({
         where: {
           id: data.clientId,
@@ -114,33 +110,28 @@ export default async function projectionRoutes(
         });
       }
       
-      // Calculate initial wealth from wallets
       const initialWealth = client.wallets.reduce(
         (sum, wallet) => sum + wallet.currentValue, 
         0
       );
       
-      // Generate projections
       const projections = await simulateWealthCurve({
         ...data,
-        initialWealth
+        initialWealth,
+        startYear: data.startYear || new Date().getFullYear()
       });
       
-      // Calculate summary
       const finalProjection = projections[projections.length - 1];
       const totalYears = projections.length;
       const totalGrowth = finalProjection.endValue - initialWealth;
       const totalContributions = projections.reduce(
-        (sum, p) => sum + p.totalContributions, 0
+        (sum, p) => sum + p.contribution, 0
       );
       const totalWithdrawals = projections.reduce(
-        (sum, p) => sum + p.totalWithdrawals, 0
+        (sum, p) => sum + p.withdrawal, 0
       );
       
-      // Calculate annualized return
-      const netContributions = totalContributions - totalWithdrawals;
-      const actualGrowth = finalProjection.endValue - initialWealth - netContributions;
-      const annualizedReturn = totalYears > 0 
+      const annualizedReturn = initialWealth > 0 && totalYears > 0 
         ? Math.pow(finalProjection.endValue / initialWealth, 1 / totalYears) - 1
         : 0;
       
@@ -166,7 +157,6 @@ export default async function projectionRoutes(
     }
   });
   
-  // Generate contribution plans
   fastify.post('/contribution-plans', {
     schema: {
       description: 'Generate contribution plans to reach a financial goal',
@@ -219,7 +209,6 @@ export default async function projectionRoutes(
     try {
       const data = contributionPlanSchema.parse(request.body);
       
-      // Check client and goal access
       const goal = await prisma.goal.findFirst({
         where: {
           id: data.goalId,
@@ -243,19 +232,13 @@ export default async function projectionRoutes(
         });
       }
       
-      // Calculate current wealth
       const currentWealth = goal.client.wallets.reduce(
         (sum, wallet) => sum + wallet.currentValue, 
         0
       );
       
-      // Generate contribution plans
-      const plans = generateContributionPlan(
-        currentWealth,
-        goal.targetValue,
-        goal.targetDate,
-        data.preferredMonthlyAmount,
-        data.realRate
+      const plans = generateSuggestions(
+        goal.clientId,
       );
       
       return reply.send({
@@ -280,7 +263,6 @@ export default async function projectionRoutes(
     }
   });
   
-  // Calculate required contribution for a specific goal
   fastify.get('/required-contribution/:clientId/:goalId', {
     schema: {
       description: 'Calculate required monthly contribution to reach a goal',
@@ -325,7 +307,6 @@ export default async function projectionRoutes(
     const { clientId, goalId } = request.params;
     const { realRate = 0.04 } = request.query;
     
-    // Get goal with client data
     const goal = await prisma.goal.findFirst({
       where: {
         id: goalId,
@@ -349,20 +330,17 @@ export default async function projectionRoutes(
       });
     }
     
-    // Calculate current wealth
     const currentWealth = goal.client.wallets.reduce(
       (sum, wallet) => sum + wallet.currentValue, 
       0
     );
     
-    // Calculate months to goal
     const now = new Date();
     const monthsToGoal = Math.max(1,
       (goal.targetDate.getFullYear() - now.getFullYear()) * 12 + 
       (goal.targetDate.getMonth() - now.getMonth())
     );
     
-    // Calculate required contribution
     const requiredMonthlyContribution = calculateRequiredContribution(
       currentWealth,
       goal.targetValue,
@@ -384,7 +362,6 @@ export default async function projectionRoutes(
     });
   });
   
-  // Save simulation
   fastify.post('/save-simulation', {
     schema: {
       description: 'Save a projection simulation for future reference',
@@ -418,7 +395,6 @@ export default async function projectionRoutes(
   }, async (request: any, reply) => {
     const { clientId, name, description, parameters, results } = request.body;
     
-    // Check client access
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
@@ -432,7 +408,6 @@ export default async function projectionRoutes(
       });
     }
     
-    // Get next version number
     const lastSimulation = await prisma.simulation.findFirst({
       where: { clientId },
       orderBy: { version: 'desc' }
@@ -440,7 +415,6 @@ export default async function projectionRoutes(
     
     const version = (lastSimulation?.version || 0) + 1;
     
-    // Save simulation
     const simulation = await prisma.simulation.create({
       data: {
         clientId,

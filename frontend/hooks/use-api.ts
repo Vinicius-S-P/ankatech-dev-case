@@ -11,6 +11,7 @@ import {
   projectionsAPI, 
   insuranceAPI 
 } from '@/lib/api-client'
+import { ClientFormData } from '@/lib/schemas'
 
 // Auth Hooks
 export const useAuth = () => {
@@ -114,7 +115,7 @@ export const useCreateClient = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: clientsAPI.create,
+    mutationFn: (data: ClientFormData) => clientsAPI.create(data),
     onSuccess: (data) => {
       console.log('Cliente criado com sucesso:', data)
       // Invalidar todas as queries de clientes
@@ -134,7 +135,7 @@ export const useUpdateClient = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => clientsAPI.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: ClientFormData }) => clientsAPI.update(id, data),
     onSuccess: (data, variables) => {
       console.log('Cliente atualizado com sucesso:', data)
       // Invalidar e refetch queries relacionadas
@@ -484,6 +485,14 @@ export const useWealthCurve = () => {
 }
 
 // Insurance Hooks
+export const useInsurances = (clientId?: string) => {
+  return useQuery({
+    queryKey: ['insurances', clientId],
+    queryFn: () => insuranceAPI.getAll(clientId),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export const useInsurance = (page?: number, limit?: number, search?: string) => {
   return useQuery({
     queryKey: ['insurance', page, limit, search],

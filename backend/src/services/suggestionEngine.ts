@@ -1,5 +1,4 @@
 import { prisma } from '../prisma'
-import { calculateRequiredContribution, calculateAlignmentPercentage } from './projectionEngine'
 
 export interface Suggestion {
   id: string
@@ -38,21 +37,17 @@ export async function generateSuggestions(clientId: string): Promise<Suggestion[
   }
 
   const suggestions: Suggestion[] = []
-  const currentYear = new Date().getFullYear()
 
-  // 1. Análise de alinhamento e contribuições
-  await analyzeAlignment(client, suggestions)
-
-  // 2. Análise de carteira e rebalanceamento
+  // 1. Análise de carteira e rebalanceamento
   await analyzePortfolio(client, suggestions)
 
-  // 3. Análise de metas
-  await analyzeGoals(client, suggestions, currentYear)
+  // 2. Análise de metas
+  await analyzeGoals(client, suggestions)
 
-  // 4. Análise de risco
+  // 3. Análise de risco
   await analyzeRisk(client, suggestions)
 
-  // 5. Otimização fiscal
+  // 4. Otimização fiscal
   await analyzeTaxOptimization(client, suggestions)
 
   // Ordenar por prioridade e confiança
@@ -65,50 +60,7 @@ export async function generateSuggestions(clientId: string): Promise<Suggestion[
   })
 }
 
-async function analyzeAlignment(client: any, suggestions: Suggestion[]) {
-  const alignmentPercentage = client.alignmentPercentage || 0
 
-  if (alignmentPercentage < 70) {
-    const totalWealth = client.totalWealth || 0
-    const primaryGoal = client.goals.find((g: any) => g.priority === 'HIGH')
-    
-    if (primaryGoal) {
-      const yearsToTarget = Math.ceil(
-        (new Date(primaryGoal.targetDate).getTime() - new Date().getTime()) / 
-        (1000 * 60 * 60 * 24 * 365)
-      )
-
-      const requiredContribution = calculateRequiredContribution(
-        primaryGoal.currentAmount || 0,
-        primaryGoal.targetAmount,
-        yearsToTarget,
-        0.08 // Assumindo 8% de retorno real
-      )
-
-      const currentMonthlyContribution = getCurrentMonthlyContribution(client)
-      const additionalContribution = Math.max(0, (requiredContribution / 12) - currentMonthlyContribution)
-
-      if (additionalContribution > 0) {
-        suggestions.push({
-          id: `contribution_${client.id}`,
-          type: 'CONTRIBUTION_INCREASE',
-          priority: alignmentPercentage < 50 ? 'HIGH' : 'MEDIUM',
-          title: 'Aumento de Contribuição Recomendado',
-          description: `Para melhorar seu alinhamento de ${alignmentPercentage.toFixed(1)}% para 90%`,
-          impact: `Alcançar meta "${primaryGoal.title}" ${Math.round((90 - alignmentPercentage) / 10)} meses mais cedo`,
-          actionRequired: {
-            amount: Math.round(additionalContribution),
-            duration: yearsToTarget * 12,
-            frequency: 'MONTHLY' as const
-          },
-          reasoning: `Com o alinhamento atual de ${alignmentPercentage.toFixed(1)}%, existe um gap significativo para alcançar suas metas. Aumentando a contribuição mensal, você pode melhorar substancialmente suas chances de sucesso.`,
-          potentialGain: (additionalContribution * 12 * yearsToTarget * 1.08) - (additionalContribution * 12 * yearsToTarget),
-          confidence: 85
-        })
-      }
-    }
-  }
-}
 
 async function analyzePortfolio(client: any, suggestions: Suggestion[]) {
   const wallets = client.wallets || []
@@ -168,7 +120,7 @@ async function analyzePortfolio(client: any, suggestions: Suggestion[]) {
   }
 }
 
-async function analyzeGoals(client: any, suggestions: Suggestion[], currentYear: number) {
+async function analyzeGoals(client: any, suggestions: Suggestion[]) {
   const goals = client.goals || []
 
   for (const goal of goals) {
@@ -269,15 +221,6 @@ async function analyzeTaxOptimization(client: any, suggestions: Suggestion[]) {
       confidence: 65
     })
   }
-}
-
-function getCurrentMonthlyContribution(client: any): number {
-  const events = client.events || []
-  const monthlyContributions = events.filter((e: any) => 
-    e.type === 'CONTRIBUTION' && e.frequency === 'MONTHLY'
-  )
-  
-  return monthlyContributions.reduce((sum: number, event: any) => sum + event.value, 0)
 }
 
 function getAssetClassName(assetClass: string | undefined): string {

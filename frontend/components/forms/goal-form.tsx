@@ -57,14 +57,19 @@ export function GoalForm({ goal, clientId, onSuccess, onCancel }: GoalFormProps)
 
   const onSubmit = async (data: GoalFormData) => {
     try {
+      const goalData = {
+        ...data,
+        targetDate: new Date(data.targetDate).toISOString().replace(/\.\d{3}Z$/, '.000Z'),
+      };
+
       if (isEditing && goal?.id) {
-        await updateGoal.mutateAsync({ id: goal.id, data })
+        await updateGoal.mutateAsync({ id: goal.id, data: goalData });
       } else {
-        await createGoal.mutateAsync({ ...data, priority: 'MEDIUM' })
+        await createGoal.mutateAsync({ ...goalData, priority: 'MEDIUM' });
       }
-      onSuccess?.()
+      onSuccess?.();
     } catch (error) {
-      console.error("Erro ao salvar meta:", error)
+      console.error("Erro ao salvar meta:", error);
     }
   }
 

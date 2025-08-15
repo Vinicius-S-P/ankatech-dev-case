@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
-// Definir enums locais para evitar erro do Prisma
 const InvestmentTypeEnum = z.enum(['STOCKS', 'BONDS', 'FUNDS', 'REAL_ESTATE', 'CRYPTO', 'OTHER'])
 const AssetTypeEnum = z.enum(['EQUITY', 'FIXED_INCOME', 'ALTERNATIVES', 'CASH'])
 
@@ -73,7 +72,7 @@ export const investmentController = {
         }
       };
 
-      res.json({ investments, summary });
+      return res.json({ investments, summary });
     } catch (error) {
       return res.status(500).json({ message: 'Internal server error' });
     }

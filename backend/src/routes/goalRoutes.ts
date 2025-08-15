@@ -4,7 +4,6 @@ import { PrismaClient, GoalType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Schemas
 const createGoalSchema = z.object({
   clientId: z.string(),
   type: z.nativeEnum(GoalType),
@@ -20,9 +19,8 @@ const updateGoalSchema = createGoalSchema.partial().omit({ clientId: true });
 
 export default async function goalRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Get all goals
   fastify.get('/', {
     schema: {
       description: 'List all goals',
@@ -49,7 +47,6 @@ export default async function goalRoutes(
     return reply.send({ goals });
   });
   
-  // Get goal by ID
   fastify.get('/:id', {
     schema: {
       description: 'Get goal by ID',
@@ -77,7 +74,6 @@ export default async function goalRoutes(
     return reply.send(goal);
   });
   
-  // Create goal
   fastify.post('/', {
     schema: {
       description: 'Create a new goal',
@@ -87,12 +83,13 @@ export default async function goalRoutes(
     preHandler: [(fastify as any).authorize(['ADVISOR'])]
   }, async (request: any, reply) => {
     try {
+      console.log('Request body:', request.body);
       const data = createGoalSchema.parse(request.body);
       
       const client = await prisma.client.findFirst({
         where: {
           id: data.clientId,
-          advisorId: request.user.id
+          ...(request.user.role === 'VIEWER' ? { advisorId: request.user.id } : {})
         }
       });
       
@@ -119,7 +116,6 @@ export default async function goalRoutes(
     }
   });
   
-  // Update goal
   fastify.put('/:id', {
     schema: {
       description: 'Update goal',
@@ -165,7 +161,6 @@ export default async function goalRoutes(
     }
   });
   
-  // Delete goal
   fastify.delete('/:id', {
     schema: {
       description: 'Delete a goal',

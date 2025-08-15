@@ -24,17 +24,12 @@ export default function LoginPage() {
     },
   })
 
-  // Removido useEffect de redirecionamento automático para evitar loops infinitos
-  // O usuário será redirecionado apenas após fazer login com sucesso
-
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError("")
       await login(data)
       
-      // Aguardar um pouco para garantir que o token foi salvo
       setTimeout(() => {
-        // Verificar se o token foi realmente salvo antes de redirecionar
         const token = localStorage.getItem('authToken')
         if (token) {
           window.location.href = "/"

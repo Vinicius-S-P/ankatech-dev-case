@@ -15,7 +15,7 @@ jest.mock('@prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => ({
       data: mockPrismaData,
     })),
-    mockPrismaData, // Export for use in tests
+    mockPrismaData,
   };
 });
 
@@ -28,7 +28,6 @@ describe('DataController', () => {
 
   beforeEach(() => {
     dataController = new DataController();
-    // Get the mocked PrismaClient instance
     const { PrismaClient } = require('@prisma/client');
     mockPrisma = new PrismaClient();
     
@@ -46,7 +45,6 @@ describe('DataController', () => {
     
     mockNext = jest.fn();
     
-    // Clear all mocks before each test
     jest.clearAllMocks();
   });
 

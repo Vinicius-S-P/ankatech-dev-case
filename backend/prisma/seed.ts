@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, GoalType, EventType, Frequency, InsuranceType, AssetClass } from '@prisma/client';
+import { PrismaClient, UserRole, GoalType, EventType, Frequency, InsuranceType, AssetClass, CivilStatus, ChildrenStatus, DependantsStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -40,7 +40,7 @@ async function main() {
       name: 'Carlos Oliveira',
       email: 'carlos@example.com',
       age: 45,
-      familyProfile: 'Casado, 2 filhos (15 e 12 anos)',
+      familyProfile: [CivilStatus.MARRIED, ChildrenStatus.HAS_CHILDREN, DependantsStatus.HAS_DEPENDANTS],
       advisorId: advisor.id
     }
   });
@@ -50,7 +50,7 @@ async function main() {
       name: 'Ana Costa',
       email: 'ana@example.com',
       age: 38,
-      familyProfile: 'Solteira, sem filhos',
+      familyProfile: [CivilStatus.SINGLE, ChildrenStatus.NO_CHILDREN, DependantsStatus.NO_DEPENDANTS],
       advisorId: advisor.id
     }
   });

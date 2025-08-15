@@ -20,9 +20,8 @@ const updateEventSchema = createEventSchema.partial().omit({ clientId: true });
 
 export default async function eventRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Get all events
   fastify.get('/', {
     schema: {
       description: 'List all events',
@@ -34,7 +33,7 @@ export default async function eventRoutes(
     const { clientId, type, frequency } = request.query;
     const where: any = {};
     
-    if (clientId) where.clientId = clientId;
+    if (clientId && clientId !== 'all') where.clientId = clientId;
     if (type) where.type = type;
     if (frequency) where.frequency = frequency;
     
@@ -55,7 +54,6 @@ export default async function eventRoutes(
     return reply.send({ events });
   });
   
-  // Get upcoming events
   fastify.get('/upcoming/:clientId', {
     schema: {
       description: 'Get upcoming events for a client',
@@ -85,7 +83,6 @@ export default async function eventRoutes(
       where: {
         clientId,
         OR: [
-          // One-time events in the period
           {
             frequency: 'ONCE',
             startDate: {
@@ -93,7 +90,6 @@ export default async function eventRoutes(
               lte: futureDate
             }
           },
-          // Recurring events that are active
           {
             frequency: { in: ['MONTHLY', 'YEARLY'] },
             startDate: { lte: futureDate },
@@ -107,7 +103,6 @@ export default async function eventRoutes(
       orderBy: { startDate: 'asc' }
     });
     
-    // Calculate next occurrences for recurring events
     const upcomingEvents = events.map(event => {
       let nextOccurrence = event.startDate;
       
@@ -134,7 +129,6 @@ export default async function eventRoutes(
     });
   });
   
-  // Create event
   fastify.post('/', {
     schema: {
       description: 'Create a new event',
@@ -149,7 +143,7 @@ export default async function eventRoutes(
       const client = await prisma.client.findFirst({
         where: {
           id: data.clientId,
-          advisorId: request.user.id
+          ...(request.user.role === 'VIEWER' ? { advisorId: request.user.id } : {})
         }
       });
       
@@ -177,7 +171,6 @@ export default async function eventRoutes(
     }
   });
   
-  // Update event
   fastify.put('/:id', {
     schema: {
       description: 'Update event',
@@ -193,7 +186,7 @@ export default async function eventRoutes(
       const existing = await prisma.event.findFirst({
         where: {
           id,
-          client: { advisorId: request.user.id }
+          ...(request.user.role === 'VIEWER' ? { client: { advisorId: request.user.id } } : {})
         }
       });
       
@@ -222,7 +215,6 @@ export default async function eventRoutes(
     }
   });
   
-  // Delete event
   fastify.delete('/:id', {
     schema: {
       description: 'Delete event',
@@ -236,7 +228,7 @@ export default async function eventRoutes(
     const existing = await prisma.event.findFirst({
       where: {
         id,
-        client: { advisorId: request.user.id }
+        ...(request.user.role === 'VIEWER' ? { client: { advisorId: request.user.id } } : {})
       }
     });
     
@@ -249,7 +241,6 @@ export default async function eventRoutes(
     return reply.status(204).send();
   });
   
-  // Get cash flow summary
   fastify.get('/cash-flow/:clientId', {
     schema: {
       description: 'Get cash flow summary for a client',
@@ -287,7 +278,6 @@ export default async function eventRoutes(
       }
     });
     
-    // Calculate monthly cash flow
     const cashFlow = [];
     
     for (let i = 0; i < months; i++) {
@@ -331,7 +321,6 @@ export default async function eventRoutes(
   });
 }
 
-// Helper function
 function shouldApplyEventInMonth(event: any, monthDate: Date): boolean {
   if (event.startDate > monthDate) return false;
   if (event.endDate && event.endDate < monthDate) return false;

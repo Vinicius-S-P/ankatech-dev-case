@@ -4,22 +4,21 @@ import { PrismaClient, AssetClass } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Schemas
 const createWalletSchema = z.object({
   clientId: z.string(),
   assetClass: z.nativeEnum(AssetClass),
   description: z.string().optional(),
-  currentValue: z.number().min(0),
-  percentage: z.number().min(0).max(100)
+  currentValue: z.number().positive(),
+  percentage: z.number().min(0).max(100),
+  targetPercentage: z.number().min(0).max(100).optional()
 });
 
 const updateWalletSchema = createWalletSchema.partial().omit({ clientId: true });
 
 export default async function walletRoutes(
   fastify: FastifyInstance,
-  options: FastifyPluginOptions
+  _options: FastifyPluginOptions
 ) {
-  // Get all wallets
   fastify.get('/', {
     schema: {
       description: 'List all wallets',
@@ -52,7 +51,6 @@ export default async function walletRoutes(
     return reply.send({ wallets });
   });
   
-  // Get client portfolio summary
   fastify.get('/portfolio/:clientId', {
     schema: {
       description: 'Get portfolio summary for a client',
@@ -90,14 +88,12 @@ export default async function walletRoutes(
       return acc;
     }, {});
     
-    // Calculate percentages
     Object.keys(byAssetClass).forEach(assetClass => {
       byAssetClass[assetClass].percentage = totalValue > 0
         ? (byAssetClass[assetClass].value / totalValue) * 100
         : 0;
     });
     
-    // Update client total wealth
     await prisma.client.update({
       where: { id: clientId },
       data: { totalWealth: totalValue }
@@ -112,7 +108,6 @@ export default async function walletRoutes(
     });
   });
   
-  // Create wallet
   fastify.post('/', {
     schema: {
       description: 'Create a new wallet entry',
@@ -127,7 +122,7 @@ export default async function walletRoutes(
       const client = await prisma.client.findFirst({
         where: {
           id: data.clientId,
-          advisorId: request.user.id
+          ...(request.user.role === 'VIEWER' ? { advisorId: request.user.id } : {})
         }
       });
       
@@ -137,7 +132,6 @@ export default async function walletRoutes(
       
       const wallet = await prisma.wallet.create({ data });
       
-      // Recalculate percentages
       await recalculatePortfolioPercentages(data.clientId);
       
       return reply.status(201).send(wallet);
@@ -152,7 +146,6 @@ export default async function walletRoutes(
     }
   });
   
-  // Update wallet
   fastify.put('/:id', {
     schema: {
       description: 'Update wallet entry',
@@ -168,7 +161,7 @@ export default async function walletRoutes(
       const existing = await prisma.wallet.findFirst({
         where: {
           id,
-          client: { advisorId: request.user.id }
+          ...(request.user.role === 'VIEWER' ? { advisorId: request.user.id } : {})
         }
       });
       
@@ -181,7 +174,6 @@ export default async function walletRoutes(
         data
       });
       
-      // Recalculate percentages
       await recalculatePortfolioPercentages(existing.clientId);
       
       return reply.send(wallet);
@@ -196,7 +188,6 @@ export default async function walletRoutes(
     }
   });
   
-  // Delete wallet
   fastify.delete('/:id', {
     schema: {
       description: 'Delete wallet entry',
@@ -210,7 +201,7 @@ export default async function walletRoutes(
     const existing = await prisma.wallet.findFirst({
       where: {
         id,
-        client: { advisorId: request.user.id }
+        ...(request.user.role === 'VIEWER' ? { advisorId: request.user.id } : {})
       }
     });
     
@@ -220,13 +211,11 @@ export default async function walletRoutes(
     
     await prisma.wallet.delete({ where: { id } });
     
-    // Recalculate percentages
     await recalculatePortfolioPercentages(existing.clientId);
     
     return reply.status(204).send();
   });
   
-  // Rebalance portfolio
   fastify.post('/rebalance/:clientId', {
     schema: {
       description: 'Suggest portfolio rebalancing',
@@ -253,7 +242,6 @@ export default async function walletRoutes(
     const totalValue = client.wallets.reduce((sum, w) => sum + w.currentValue, 0);
     const suggestions = [];
     
-    // Calculate rebalancing suggestions
     for (const [assetClass, targetPercentage] of Object.entries(targetAllocation)) {
       const currentWallets = client.wallets.filter(w => w.assetClass === assetClass);
       const currentValue = currentWallets.reduce((sum, w) => sum + w.currentValue, 0);
@@ -281,7 +269,6 @@ export default async function walletRoutes(
   });
 }
 
-// Helper function to recalculate portfolio percentages
 async function recalculatePortfolioPercentages(clientId: string) {
   const wallets = await prisma.wallet.findMany({
     where: { clientId }
@@ -299,7 +286,6 @@ async function recalculatePortfolioPercentages(clientId: string) {
     }
   }
   
-  // Update client total wealth
   await prisma.client.update({
     where: { id: clientId },
     data: { totalWealth: totalValue }
