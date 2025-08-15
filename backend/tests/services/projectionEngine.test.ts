@@ -1,6 +1,21 @@
 import { simulateWealthCurve, calculateRequiredContribution } from '../../src/services/projectionEngine'
 import { prisma } from '../setup'
 
+// Mock the prisma module
+jest.mock('../../src/prisma', () => ({
+  prisma: {
+    goal: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    event: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    client: {
+      findUnique: jest.fn().mockResolvedValue({ id: 'test-client-1' }),
+    },
+  },
+}))
+
 describe('ProjectionEngine', () => {
   describe('simulateWealthCurve', () => {
     beforeEach(async () => {
@@ -21,6 +36,7 @@ describe('ProjectionEngine', () => {
         clientId: 'test-client-1',
         initialWealth: 100000,
         realRate: 0.04,
+        startYear: 2020,
         endYear: 2025,
         includeEvents: false
       }
@@ -34,7 +50,7 @@ describe('ProjectionEngine', () => {
       // Test compound growth calculation
       const firstYear = result[0]
       expect(firstYear.endValue).toBeCloseTo(104000, 1)
-      expect(firstYear.year).toBe(2025)
+      expect(firstYear.year).toBe(2020)
     })
 
     it('should process recurring events correctly', async () => {
@@ -56,6 +72,7 @@ describe('ProjectionEngine', () => {
         clientId: 'test-client-1',
         initialWealth: 100000,
         realRate: 0.04,
+        startYear: 2020,
         endYear: 2025,
         includeEvents: true
       }
@@ -75,6 +92,7 @@ describe('ProjectionEngine', () => {
         clientId: 'test-client-1',
         initialWealth: 0,
         realRate: 0,
+        startYear: 2020,
         endYear: 2025,
         includeEvents: false
       }
@@ -90,6 +108,7 @@ describe('ProjectionEngine', () => {
         clientId: 'test-client-1',
         initialWealth: 100000,
         realRate: -0.02,
+        startYear: 2020,
         endYear: 2025,
         includeEvents: false
       }
