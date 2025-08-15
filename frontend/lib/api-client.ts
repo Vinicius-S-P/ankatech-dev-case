@@ -1,12 +1,15 @@
 import axios from 'axios'
 import { toast } from 'sonner'
+import { z } from 'zod'
+
+import { CivilStatus, ChildrenStatus, DependantsStatus } from '@/lib/schemas'
 
 // Type definitions
 interface ClientCreateData {
   name: string
   email: string
   age: number
-  familyProfile?: string
+  familyProfile?: (z.infer<typeof CivilStatus> | z.infer<typeof ChildrenStatus> | z.infer<typeof DependantsStatus>)[]
 }
 
 interface GoalCreateData {
@@ -72,11 +75,37 @@ interface UserRegistrationData {
   role?: string
 }
 
-interface ProjectionData {
-  clientId: string
-  parameters: Record<string, unknown>
-  timeHorizon?: number
-  initialValue?: number
+export interface ProjectionData {
+  clientId?: string
+  initialWealth?: number
+  realRate: number
+  startYear: number
+  endYear: number
+  includeEvents: boolean
+}
+
+interface WealthCurveResult {
+  year: number
+  startValue: number
+  endValue: number
+  contribution: number
+  withdrawal: number
+  growth: number
+  events: Array<{
+    type: string
+    value: number
+    description: string
+  }>
+  totalGoalProgress: number
+}
+
+interface ProjectionSummary {
+  initialWealth: number;
+  finalWealth: number;
+  totalGrowth: number;
+  totalContributions: number;
+  totalWithdrawals: number;
+  annualizedReturn: number;
 }
 
 interface WealthCurveParams {
@@ -324,7 +353,7 @@ export const simulationsAPI = {
 
 // Projections API
 export const projectionsAPI = {
-  simulate: async (projectionData: ProjectionData) => {
+  simulate: async (projectionData: ProjectionData): Promise<{ projections: WealthCurveResult[], summary: ProjectionSummary }> => {
     const response = await apiClient.post('/api/projections/simulate', projectionData)
     return response.data
   },
